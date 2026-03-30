@@ -723,53 +723,19 @@
   <div id="screen-select">
     <div class="card">
       <h2>何をしますか？</h2>
-      <p class="hint">迷ったら下の診断を参考にしてください</p>
-      <div style="background:#eef3fb;border-radius:8px;padding:14px 16px;margin-top:12px;font-size:13px;line-height:1.9;">
-        <strong>どれを選ぶ？かんたん診断</strong><br>
-        まだ原稿がない → <a href="#" onclick="selectPattern(1);return false" style="color:var(--primary);font-weight:600;">新規作成</a><br>
-        応募が来ない＆表示回数が少ない → <a href="#" onclick="selectPattern(2);return false" style="color:var(--primary);font-weight:600;">見せ方変更</a><br>
-        応募が来ない＆原稿が読みにくい → <a href="#" onclick="selectPattern(3);return false" style="color:var(--primary);font-weight:600;">リライト</a><br>
-        給与や時間が変わった → <a href="#" onclick="selectPattern(4);return false" style="color:var(--primary);font-weight:600;">条件変更</a><br>
-        採りたい人が変わった → <a href="#" onclick="selectPattern(5);return false" style="color:var(--primary);font-weight:600;">ターゲット変更</a><br>
-        同じ人に別の魅力を見せたい → <a href="#" onclick="selectPattern(6);return false" style="color:var(--primary);font-weight:600;">訴求軸変更</a>
-      </div>
     </div>
-    <div class="pattern-grid">
+    <div class="pattern-grid" style="grid-template-columns:1fr 1fr;">
       <div class="pattern-card" onclick="selectPattern(1)" style="border-color:var(--primary);background:#f8faff;">
         <div class="number">1</div>
-        <h3>新規作成 <span style="font-size:11px;background:var(--accent);color:white;padding:1px 8px;border-radius:8px;font-weight:600;">よく使う</span></h3>
-        <p class="desc">求人情報をもとに原稿をゼロから作る</p>
-        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：新しいポジションの募集を始める</p>
+        <h3>新規作成</h3>
+        <p class="desc">原稿をゼロから作る</p>
+        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">まだ原稿がない時</p>
       </div>
-      <div class="pattern-card" onclick="selectPattern(2)">
+      <div class="pattern-card" onclick="selectPattern(2)" style="border-color:var(--primary);background:#f8faff;">
         <div class="number">2</div>
-        <h3>見せ方変更</h3>
-        <p class="desc">仕事内容は変えず、検索され方・入口を変える</p>
-        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：「事務」→「営業事務」に職種名を変えて検索ヒットを増やす</p>
-      </div>
-      <div class="pattern-card" onclick="selectPattern(3)" style="border-color:var(--primary);background:#f8faff;">
-        <div class="number">3</div>
-        <h3>リライト <span style="font-size:11px;background:var(--accent);color:white;padding:1px 8px;border-radius:8px;font-weight:600;">よく使う</span></h3>
-        <p class="desc">条件やターゲットは変えず、伝わりやすくする</p>
-        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：長すぎる仕事内容を箇条書きに整理する</p>
-      </div>
-      <div class="pattern-card" onclick="selectPattern(4)">
-        <div class="number">4</div>
-        <h3>条件変更</h3>
-        <p class="desc">給与・時間など、事実情報を変更する</p>
-        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：時給1,100円→1,250円に上がった</p>
-      </div>
-      <div class="pattern-card" onclick="selectPattern(5)">
-        <div class="number">5</div>
-        <h3>ターゲット変更</h3>
-        <p class="desc">採用したい人物像を変える</p>
-        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：経験者狙い→未経験・主婦層に広げる</p>
-      </div>
-      <div class="pattern-card" onclick="selectPattern(6)">
-        <div class="number">6</div>
-        <h3>訴求軸変更</h3>
-        <p class="desc">同じターゲットに対して、魅力の見せ方を変える</p>
-        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：高時給アピール→シフト柔軟アピールに切替</p>
+        <h3>原稿修正</h3>
+        <p class="desc">既存の原稿を改善する</p>
+        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">リライト・条件変更・ターゲット変更など</p>
       </div>
     </div>
   </div>
@@ -837,126 +803,102 @@ const PATTERNS = {
     ]
   },
   2: {
-    name: '見せ方変更',
+    name: '原稿修正',
     needsExisting: true,
-    existingQuestions: [
-      { id: 'new_jobtitle', label: '新しい職種名（案）', type: 'input', placeholder: '例：事務→営業事務、清掃→ルームメイク' },
-      { id: 'flow_problem', label: '変更の狙い（任意）', type: 'textarea', placeholder: '例：検索ボリュームが少ない職種名になっている' },
-    ],
+    hasModTypes: true,
     steps: [
-      { title: '原稿の修正', hint: 'AIが職種名・見せ方に合わせて修正案を生成します',
+      { title: '原稿の修正', hint: 'AIが選択した変更タイプに合わせて修正案を生成します',
         isDiff: true,
         aiDiff: true,
-        diffFields: ['catchCopy', 'jobTitle', 'jobDescription', 'reqMust', 'reqWelcome', 'appealPoints']
+        dynamicDiffFields: true
       },
       { title: '最終チェック', hint: '変更後の確認',
         isChecklist: true,
-        items: [
-          '仕事内容自体は変わっていないか',
-          '新しい職種名で検索した時に違和感がないか',
-          'タイトルと本文の内容が一致しているか',
-          'スマホで見た時に読みやすいか',
-        ]
+        dynamicChecklist: true
       },
-    ]
-  },
-  3: {
-    name: 'リライト',
-    needsExisting: true,
-    existingQuestions: [
-      { id: 'issue_points', label: '気になる点・改善したい点（任意）', type: 'textarea', placeholder: '例：仕事内容が長すぎる、箇条書きにしたい、堅い印象を柔らかく' },
-    ],
-    steps: [
-      { title: '原稿の修正', hint: 'AIが読みやすさ・伝わりやすさを改善した案を生成します',
-        isDiff: true,
-        aiDiff: true,
-        diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'reqMust', 'reqWelcome']
-      },
-      { title: '最終チェック', hint: '意味が変わっていないか確認',
-        isChecklist: true,
-        items: [
-          '条件（給与・時間等）が元と同じか',
-          'ターゲットが変わっていないか',
-          '箇条書きで読みやすくなっているか',
-          'スマホで見た時に読みやすいか',
-          '誤字脱字がないか',
-        ]
-      },
-    ]
-  },
-  4: {
-    name: '条件変更',
-    needsExisting: true,
-    existingQuestions: [
-      { id: 'change_items', label: '変更する項目と内容', type: 'textarea', placeholder: '例：時給1,100円→1,250円に変更' },
-    ],
-    steps: [
-      { title: '原稿の修正', hint: 'AIが該当箇所を全て修正した案を生成します',
-        isDiff: true,
-        aiDiff: true,
-        diffFields: ['catchCopy', 'salary', 'salaryNote', 'jobDescription', 'workHours', 'benefits']
-      },
-      { title: '最終チェック', hint: '矛盾がないか確認',
-        isChecklist: true,
-        items: [
-          '変更内容が全箇所に反映されているか',
-          'キャッチコピーの数字が更新されているか',
-          '給与と給与の補足に矛盾がないか',
-          '勤務時間と休日に矛盾がないか',
-          '誤字脱字がないか',
-        ]
-      },
-    ]
-  },
-  5: {
-    name: 'ターゲット変更',
-    needsExisting: true,
-    existingQuestions: [
-      { id: 'new_target', label: '新しいターゲット像', type: 'textarea', placeholder: '例：30〜40代の未経験者・主婦(夫)層。家庭と両立したい、ブランクがあって不安な方' },
-    ],
-    steps: [
-      { title: '原稿の修正', hint: 'AIが新ターゲットに合わせて原稿を書き換えます',
-        isDiff: true,
-        aiDiff: true,
-        diffFields: ['catchCopy', 'jobDescription', 'reqMust', 'reqWelcome', 'appealPoints']
-      },
-      { title: '最終チェック', hint: '新ターゲット向けになっているか確認',
-        isChecklist: true,
-        items: [
-          'キャッチコピーが新ターゲットに刺さるか',
-          '仕事内容の書き方が新ターゲットに合っているか',
-          '応募資格が新ターゲットにマッチしているか',
-          '全体のトーンが統一されているか',
-          '元のターゲット向けの表現が残っていないか',
-        ]
-      }
-    ]
-  },
-  6: {
-    name: '訴求軸変更',
-    needsExisting: true,
-    existingQuestions: [
-      { id: 'appeal_selected', label: '新しい訴求軸', type: 'textarea', placeholder: '例：シフト自由で働きやすい環境、充実した研修制度で未経験でも安心' },
-    ],
-    steps: [
-      { title: '原稿の修正', hint: 'AIが新しい訴求軸に合わせて原稿を書き換えます',
-        isDiff: true,
-        aiDiff: true,
-        diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'benefits']
-      },
-      { title: '最終チェック', hint: '一貫性の確認',
-        isChecklist: true,
-        items: [
-          'ターゲット自体は変わっていないか',
-          '新訴求軸がタイトルに反映されているか',
-          '仕事内容の冒頭で新訴求軸に触れているか',
-          'アピールポイントの順番が訴求軸に合っているか',
-          '全体を通して一貫したメッセージになっているか',
-        ]
-      }
     ]
   }
 };
+
+// Modification types for unified pattern 2
+const MOD_TYPES = {
+  rewrite: {
+    label: 'リライト',
+    desc: '読みやすく・伝わりやすくする',
+    question: { id: 'issue_points', label: '気になる点・改善したい点（任意）', type: 'textarea', placeholder: '例：仕事内容が長すぎる、箇条書きにしたい、堅い印象を柔らかく' },
+    diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'reqMust', 'reqWelcome'],
+    checklist: [
+      '条件（給与・時間等）が元と同じか',
+      '箇条書きで読みやすくなっているか',
+      'スマホで読みやすいか',
+    ]
+  },
+  appearance: {
+    label: '見せ方変更',
+    desc: '職種名・検索のされ方を変える',
+    question: { id: 'new_jobtitle', label: '新しい職種名（案）', type: 'input', placeholder: '例：事務→営業事務、清掃→ルームメイク' },
+    diffFields: ['catchCopy', 'jobTitle', 'jobDescription', 'appealPoints'],
+    checklist: [
+      '仕事内容自体は変わっていないか',
+      '新しい職種名で検索した時に違和感がないか',
+    ]
+  },
+  conditions: {
+    label: '条件変更',
+    desc: '給与・時間など事実情報を変更',
+    question: { id: 'change_items', label: '変更する項目と内容', type: 'textarea', placeholder: '例：時給1,100円→1,250円に変更' },
+    diffFields: ['catchCopy', 'salary', 'salaryNote', 'jobDescription', 'workHours', 'benefits'],
+    checklist: [
+      '変更内容が全箇所に反映されているか',
+      '給与と給与の補足に矛盾がないか',
+    ]
+  },
+  target: {
+    label: 'ターゲット変更',
+    desc: '採りたい人物像を変える',
+    question: { id: 'new_target', label: '新しいターゲット像', type: 'textarea', placeholder: '例：30〜40代の未経験者・主婦(夫)層。家庭と両立したい方' },
+    diffFields: ['catchCopy', 'jobDescription', 'reqMust', 'reqWelcome', 'appealPoints'],
+    checklist: [
+      'キャッチコピーが新ターゲットに刺さるか',
+      '応募資格が新ターゲットにマッチしているか',
+      '元のターゲット向けの表現が残っていないか',
+    ]
+  },
+  appeal: {
+    label: '訴求軸変更',
+    desc: '同じ人に別の魅力を見せる',
+    question: { id: 'appeal_selected', label: '新しい訴求軸', type: 'textarea', placeholder: '例：シフト自由で働きやすい環境、充実した研修制度' },
+    diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'benefits'],
+    checklist: [
+      'ターゲット自体は変わっていないか',
+      '新訴求軸がタイトル・冒頭に反映されているか',
+    ]
+  },
+};
+
+function getSelectedModTypes() {
+  return state.data._modTypes || [];
+}
+
+function getActiveDiffFields() {
+  const types = getSelectedModTypes();
+  const fieldSet = new Set();
+  types.forEach(t => {
+    if (MOD_TYPES[t]) MOD_TYPES[t].diffFields.forEach(f => fieldSet.add(f));
+  });
+  return fieldSet.size > 0 ? [...fieldSet] : ['catchCopy', 'jobDescription', 'appealPoints', 'reqMust', 'reqWelcome'];
+}
+
+function getActiveChecklist() {
+  const types = getSelectedModTypes();
+  const items = [];
+  types.forEach(t => {
+    if (MOD_TYPES[t]) MOD_TYPES[t].checklist.forEach(c => { if (!items.includes(c)) items.push(c); });
+  });
+  items.push('タイトルと本文の内容が一致しているか');
+  items.push('誤字脱字がないか');
+  return items;
+}
 
 // ===== State =====
 let state = {
@@ -1109,27 +1051,62 @@ function renderExistingInput() {
     </div>
     <button class="btn btn-secondary" onclick="parseExisting(document.getElementById('existingText').value)">原稿を読み込む</button>`;
 
-  // Pattern-specific questions inline
-  if (p.existingQuestions) {
-    html += '<div style="margin-top:16px;padding-top:16px;border-top:1px solid #f0c040;">';
-    p.existingQuestions.forEach(q => {
-      const val = state.data[q.id] || '';
-      html += `<div class="form-group">
-        <label style="color:#92400e;">${q.label}</label>`;
-      if (q.type === 'textarea') {
-        html += `<textarea id="q_${q.id}" onchange="saveQuestion('${q.id}', this.value)"
-          placeholder="${q.placeholder || ''}">${escapeHtml(val)}</textarea>`;
-      } else {
-        html += `<input type="text" id="q_${q.id}" value="${escapeHtml(val)}"
-          onchange="saveQuestion('${q.id}', this.value)" placeholder="${q.placeholder || ''}">`;
-      }
-      html += '</div>';
+  // Modification type checkboxes (pattern 2 unified)
+  if (p.hasModTypes) {
+    const selected = getSelectedModTypes();
+    html += `<div style="margin-top:16px;padding-top:16px;border-top:1px solid #f0c040;">
+      <h3 style="color:#92400e;margin-bottom:8px;">何を変えますか？（複数選択OK）</h3>`;
+
+    Object.entries(MOD_TYPES).forEach(([key, mt]) => {
+      const checked = selected.includes(key) ? 'checked' : '';
+      html += `<label style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;margin-bottom:4px;background:${checked ? '#fff7ed' : 'white'};border:1.5px solid ${checked ? 'var(--warning)' : 'var(--border)'};border-radius:8px;cursor:pointer;transition:all 0.2s;">
+        <input type="checkbox" ${checked} onchange="toggleModType('${key}')" style="margin-top:3px;accent-color:var(--primary);">
+        <div>
+          <strong style="font-size:14px;">${mt.label}</strong>
+          <span style="font-size:12px;color:var(--text-light);margin-left:6px;">${mt.desc}</span>
+        </div>
+      </label>`;
     });
+
+    // Dynamic question fields based on selection
+    const activeTypes = selected;
+    if (activeTypes.length > 0) {
+      html += '<div style="margin-top:12px;">';
+      activeTypes.forEach(key => {
+        const mt = MOD_TYPES[key];
+        if (mt.question) {
+          const q = mt.question;
+          const val = state.data[q.id] || '';
+          html += `<div class="form-group">
+            <label style="color:#92400e;">${mt.label}：${q.label}</label>`;
+          if (q.type === 'textarea') {
+            html += `<textarea id="q_${q.id}" onchange="saveQuestion('${q.id}', this.value)"
+              placeholder="${q.placeholder || ''}">${escapeHtml(val)}</textarea>`;
+          } else {
+            html += `<input type="text" id="q_${q.id}" value="${escapeHtml(val)}"
+              onchange="saveQuestion('${q.id}', this.value)" placeholder="${q.placeholder || ''}">`;
+          }
+          html += '</div>';
+        }
+      });
+      html += '</div>';
+    }
     html += '</div>';
   }
 
   html += '</div>';
   return html;
+}
+
+function toggleModType(key) {
+  if (!state.data._modTypes) state.data._modTypes = [];
+  const idx = state.data._modTypes.indexOf(key);
+  if (idx >= 0) {
+    state.data._modTypes.splice(idx, 1);
+  } else {
+    state.data._modTypes.push(key);
+  }
+  renderWorkflow();
 }
 
 function renderQuestions(step) {
@@ -1339,19 +1316,20 @@ function renderMainForm() {
 }
 
 function renderChecklist(step) {
+  const items = step.dynamicChecklist ? getActiveChecklist() : step.items;
   const key = `step_${state.step}`;
-  if (!state.checklistState[key]) {
-    state.checklistState[key] = new Array(step.items.length).fill(false);
+  if (!state.checklistState[key] || state.checklistState[key].length !== items.length) {
+    state.checklistState[key] = new Array(items.length).fill(false);
   }
   const checks = state.checklistState[key];
   const done = checks.filter(Boolean).length;
-  const pct = Math.round((done / step.items.length) * 100);
+  const pct = Math.round((done / items.length) * 100);
 
   let html = `<div class="progress-bar"><div class="fill" style="width:${pct}%"></div></div>
-    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">${done} / ${step.items.length} 完了</p>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">${done} / ${items.length} 完了</p>
     <ul class="checklist">`;
 
-  step.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     html += `<li class="${checks[i] ? 'checked' : ''}">
       <input type="checkbox" ${checks[i] ? 'checked' : ''} onchange="toggleCheck(${i})">
       <span>${item}</span>
@@ -1559,8 +1537,12 @@ function renderDiffView(step) {
   // AI auto-generate button for aiDiff steps
   if (step.aiDiff) {
     const hasKey = !!getApiKey();
-    const patternNames = { 2: '見せ方に合わせて', 3: '読みやすく', 4: '条件変更を反映して', 5: '新ターゲット向けに', 6: '新訴求軸に合わせて' };
-    const label = patternNames[state.pattern] || '';
+    let label = '';
+    if (state.pattern === 2) {
+      const types = getSelectedModTypes();
+      label = types.map(t => MOD_TYPES[t]?.label || '').filter(Boolean).join('＋') || '改善';
+      label += 'に合わせて';
+    }
     html += `<div class="ai-bar">
       <div class="ai-icon">AI</div>
       <div class="ai-text">
@@ -1577,7 +1559,8 @@ function renderDiffView(step) {
     html += '<div class="guide-box"><strong>変更前→変更後を対比しながら編集できます</strong></div>';
   }
 
-  step.diffFields.forEach(fieldId => {
+  const diffFields = step.dynamicDiffFields ? getActiveDiffFields() : step.diffFields;
+  diffFields.forEach(fieldId => {
     const field = FIELDS.find(f => f.id === fieldId);
     if (!field) return;
     const before = state.existingParsed[fieldId] || '';
@@ -1749,13 +1732,22 @@ function toggleCheck(i) {
 function nextStep() {
   const p = PATTERNS[state.pattern];
 
-  // Warn if existing questions not filled (step 0 for patterns with existingQuestions)
-  if (p.needsExisting && state.step === 0 && p.existingQuestions) {
-    const requiredQs = { 4: 'change_items', 5: 'new_target', 6: 'appeal_selected' };
-    const qId = requiredQs[state.pattern];
-    if (qId && !state.data[qId]) {
-      const labels = { 4: '変更内容', 5: '新しいターゲット像', 6: '新しい訴求軸' };
-      if (!confirm(`「${labels[state.pattern]}」が未入力です。\n入力しないとAIが適切な修正案を生成できません。\n\nこのまま進みますか？`)) {
+  // Warn if no modification types selected (unified pattern 2)
+  if (p.hasModTypes && state.step === 0) {
+    const modTypes = getSelectedModTypes();
+    if (modTypes.length === 0) {
+      if (!confirm('変更タイプが選択されていません。\n「リライト」として進めますがよろしいですか？')) {
+        return;
+      }
+      state.data._modTypes = ['rewrite'];
+    }
+    // Check required inputs for selected types
+    const missing = [];
+    if (modTypes.includes('conditions') && !state.data['change_items']) missing.push('条件変更の内容');
+    if (modTypes.includes('target') && !state.data['new_target']) missing.push('新しいターゲット像');
+    if (modTypes.includes('appeal') && !state.data['appeal_selected']) missing.push('新しい訴求軸');
+    if (missing.length > 0) {
+      if (!confirm(`「${missing.join('」「')}」が未入力です。\n入力しないとAIが適切な修正案を生成できません。\n\nこのまま進みますか？`)) {
         return;
       }
     }
@@ -2234,7 +2226,7 @@ function buildDiffPrompt(additionalInstruction) {
   const d = state.data;
   const p = state.pattern;
   const step = PATTERNS[p].steps[state.step];
-  const targetFields = step.diffFields;
+  const targetFields = step.dynamicDiffFields ? getActiveDiffFields() : (step.diffFields || []);
 
   // Collect ALL existing content (full context)
   const allExisting = {};
@@ -2267,88 +2259,64 @@ function buildDiffPrompt(additionalInstruction) {
   let instruction = '';
 
   if (p === 2) {
-    const newTitle = d['new_jobtitle'] || '';
-    const problem = d['flow_problem'] || '';
-    instruction = `【見せ方変更】仕事内容自体は変えずに、検索のされ方・入口を変えてください。
+    // Unified modification pattern - build instruction blocks from selected types
+    const modTypes = getSelectedModTypes();
+    const blocks = [];
 
-★最重要指示★
-${newTitle ? '新しい職種名を「' + newTitle + '」に変更してください。\nキャッチコピー・仕事内容の冒頭を、この新しい職種名に完全に合わせて書き換えてください。' : '検索されやすい職種名を提案し、それに合わせて修正してください。'}
-${problem ? '\n変更の狙い：' + problem : ''}
+    if (modTypes.includes('rewrite')) {
+      const issues = d['issue_points'] || '';
+      blocks.push(`【リライト】条件やターゲットは変えずに、伝わりやすさ・読みやすさを改善する
+${issues ? '改善ポイント：' + issues : ''}
+・重複・無駄を削除、箇条書きに変換、具体的な表現にする
+・1日のスケジュール例があれば活かす`);
+    }
 
-具体的にやること：
-・jobTitleを新しい職種名に変更する
-・catchCopyを新職種名に合った内容に全面的に書き換える
-・jobDescriptionの冒頭を新職種名に合わせて変える（業務内容の実質は変えない）
-・検索キーワードとして「${newTitle}」関連ワードを自然に盛り込む`;
+    if (modTypes.includes('appearance')) {
+      const newTitle = d['new_jobtitle'] || '';
+      blocks.push(`【見せ方変更】職種名・検索のされ方を変える
+${newTitle ? '新しい職種名：「' + newTitle + '」' : '検索されやすい職種名を提案'}
+・キャッチコピー・仕事内容の冒頭を新職種名に合わせて書き換える
+・仕事内容の実質は変えない`);
+    }
 
-  } else if (p === 3) {
-    const issues = d['issue_points'] || '';
-    instruction = `【リライト】条件やターゲットは一切変えずに、伝わりやすさ・読みやすさを改善してください。
+    if (modTypes.includes('conditions')) {
+      const changes = d['change_items'] || '';
+      blocks.push(`【条件変更】事実情報を更新する
+変更内容：${changes}
+・キャッチコピー・仕事内容・給与欄・補足欄など該当箇所をすべて更新
+・条件変更に関係ない部分は変えない`);
+    }
 
-★最重要指示★
-${issues ? 'ユーザーが求める改善点：\n' + issues + '\n\n上記の改善点を最優先で反映してください。' : '全体的に読みやすく、伝わりやすくしてください。'}
-
-具体的にやること：
-・重複・無駄な表現を削除してスッキリさせる
-・結論→理由→詳細の流れで構成し直す
-・長い文章は箇条書きに変換する（スマホで読みやすく）
-・抽象的な表現を具体的にする（数字・固有名詞を活用）
-・1日のスケジュール例があれば活かす
-・給与、勤務時間などの条件は絶対に変えない`;
-
-  } else if (p === 4) {
-    const changes = d['change_items'] || '';
-    instruction = `【条件変更】以下の条件変更を原稿の該当箇所すべてに反映してください。
-
-★最重要指示★
-変更内容：
-${changes}
-
-この変更を、以下の全ての箇所に漏れなく反映すること：
-・キャッチコピー（数字が含まれていれば更新）
-・仕事内容（条件に言及している箇所があれば更新）
-・給与欄・給与の補足
-・待遇・福利厚生
-・その他、旧条件が記載されている全ての箇所
-条件変更に関係ない部分は変えないこと。`;
-
-  } else if (p === 5) {
-    const newTarget = d['new_target'] || '';
-    instruction = `【ターゲット変更】採用したい人物像を変更します。原稿を新しいターゲットに合わせて全面的に書き換えてください。
-
-★最重要指示★
+    if (modTypes.includes('target')) {
+      const newTarget = d['new_target'] || '';
+      blocks.push(`【ターゲット変更】採りたい人物像を変える
 新しいターゲット：${newTarget}
+・キャッチコピーを新ターゲットに刺さる内容に書き換え
+・仕事内容の冒頭を新ターゲットに響く書き出しに
+・応募資格を新ターゲットに合わせ、アピールポイントを悩みに応える内容に
+・全体のトーンを統一。仕事の中身は変えない`);
+    }
 
-このターゲットの立場で考えてください：
-・この人はどんな悩みを持っているか？
-・この人はどんな言葉に反応するか？
-・この人が「自分のことだ」と思える表現は何か？
+    if (modTypes.includes('appeal')) {
+      const newAppeal = d['appeal_selected'] || '';
+      blocks.push(`【訴求軸変更】同じターゲットに別の魅力を見せる
+新しい訴求軸：${newAppeal}
+・キャッチコピーを新訴求軸を前面に出した内容に書き換え
+・仕事内容冒頭で新訴求軸に触れる
+・アピールポイント・待遇の並び順を再構成`);
+    }
 
-具体的にやること：
-・catchCopyを新ターゲットが「おっ」と思う内容に完全に書き換える
-・jobDescriptionの冒頭を新ターゲットに語りかける書き出しに変える
-・reqMustを新ターゲットが応募しやすい条件に調整する（ハードルを上げすぎない）
-・reqWelcomeを新ターゲットが「自分も当てはまる」と思える条件にする
-・appealPointsを新ターゲットの悩み・ニーズに応える内容にする
-・全体のトーン・文体を新ターゲットに合わせる
-・仕事の中身自体（業務内容）は変えない`;
+    if (blocks.length === 0) {
+      blocks.push('全体的に読みやすく、伝わりやすく改善してください。');
+    }
 
-  } else if (p === 6) {
-    const newAppeal = d['appeal_selected'] || '';
-    instruction = `【訴求軸変更】同じターゲットに対して、魅力の見せ方を変えます。
+    instruction = `以下の変更をすべて1つの原稿に統合して反映してください。
 
 ★最重要指示★
-新しい訴求軸：${newAppeal}
+${blocks.join('\n\n')}
 
-この訴求軸を前面に押し出してください。
-
-具体的にやること：
-・catchCopyを「${newAppeal}」を全面に出した内容に完全に書き換える
-・jobDescriptionの冒頭で「${newAppeal}」に触れ、求職者の関心を引く
-・appealPointsの並び順を、新訴求軸に関連するものが最初に来るよう再構成する
-・benefitsも訴求軸に関連する項目を上に持ってくる
-・ターゲット自体は変えない
-・仕事の中身自体は変えない`;
+※ 複数の変更がある場合、すべてを矛盾なく統合すること
+※ 変更同士が競合する場合は、ターゲット変更 > 訴求軸変更 > 条件変更 > 見せ方変更 > リライトの優先順位で判断`;
   }
 
   return `あなたはIndeed求人原稿のプロライターです。既存の求人原稿を修正してください。
@@ -2426,7 +2394,8 @@ async function generateDiffWithAI() {
 
     // Fill only the diff target fields
     const step = PATTERNS[state.pattern].steps[state.step];
-    step.diffFields.forEach(fid => {
+    const fids = step.dynamicDiffFields ? getActiveDiffFields() : step.diffFields;
+    fids.forEach(fid => {
       if (generated[fid]) {
         state.formData[fid] = generated[fid];
       }
@@ -2464,8 +2433,13 @@ async function generateReportWithAI() {
     }
   });
 
-  const patternNames = { 2: '見せ方変更（職種カテゴリーのずらし）', 3: 'リライト', 4: '条件変更', 5: 'ターゲット変更', 6: '訴求軸変更' };
-  const patternName = patternNames[state.pattern] || '';
+  let patternName = '';
+  if (state.pattern === 2) {
+    const types = getSelectedModTypes();
+    patternName = types.map(t => MOD_TYPES[t]?.label || '').filter(Boolean).join('＋') || '原稿修正';
+  } else {
+    patternName = '新規作成';
+  }
   const companyName = state.formData['companyName'] || state.existingParsed['companyName'] || '○○';
   const jobTitle = state.formData['jobTitle'] || state.existingParsed['jobTitle'] || '○○';
   const d = state.data;
@@ -2609,7 +2583,8 @@ async function reviseDiffWithAI() {
     const generated = JSON.parse(jsonMatch[0]);
 
     const step = PATTERNS[state.pattern].steps[state.step];
-    step.diffFields.forEach(fid => {
+    const fids = step.dynamicDiffFields ? getActiveDiffFields() : step.diffFields;
+    fids.forEach(fid => {
       if (generated[fid]) {
         state.formData[fid] = generated[fid];
       }

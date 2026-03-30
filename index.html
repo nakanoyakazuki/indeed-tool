@@ -1175,12 +1175,40 @@ function renderBasicInfo() {
     { id: 'benefits', label: '待遇・福利厚生', type: 'textarea', rows: 2, placeholder: '例：交通費支給、社員割引、研修制度' },
   ];
 
-  let html = '<div class="guide-box"><strong>まずは確定している情報を入力してください</strong>会社名・勤務地・給与など、決まっている条件を先に入れます。</div>';
+  let html = '<div class="guide-box"><strong>まずは確定している情報を入力してください</strong>*がついた項目を埋めれば次へ進めます。</div>';
 
-  basicFields.forEach(f => {
+  const requiredFields = basicFields.filter(f => f.required);
+  const optionalFields = basicFields.filter(f => !f.required);
+
+  // Required fields
+  requiredFields.forEach(f => {
     const val = state.formData[f.id] || '';
     html += `<div class="form-group">
-      <label>${f.label}${f.required ? '<span class="required">*</span>' : '<span class="optional">任意</span>'}</label>`;
+      <label>${f.label}<span class="required">*</span></label>`;
+    if (f.type === 'textarea') {
+      html += `<textarea id="f_${f.id}" rows="${f.rows || 2}"
+        onchange="saveField('${f.id}', this.value)" placeholder="${f.placeholder || ''}">${escapeHtml(val)}</textarea>`;
+    } else if (f.type === 'select') {
+      html += `<select id="f_${f.id}" onchange="saveField('${f.id}', this.value)">`;
+      html += `<option value="">-- 選択 --</option>`;
+      f.options.forEach(o => {
+        html += `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`;
+      });
+      html += '</select>';
+    } else {
+      html += `<input type="text" id="f_${f.id}" value="${escapeHtml(val)}"
+        onchange="saveField('${f.id}', this.value)" placeholder="${f.placeholder || ''}">`;
+    }
+    html += '</div>';
+  });
+
+  // Optional fields in collapsible
+  html += `<details style="margin-top:12px;"><summary style="cursor:pointer;font-size:14px;font-weight:600;color:var(--text-light);padding:8px 0;">その他の情報を入力する（任意）</summary><div style="padding-top:8px;">`;
+
+  optionalFields.forEach(f => {
+    const val = state.formData[f.id] || '';
+    html += `<div class="form-group">
+      <label>${f.label}<span class="optional">任意</span></label>`;
 
     if (f.type === 'textarea') {
       html += `<textarea id="f_${f.id}" rows="${f.rows || 2}"
@@ -1198,6 +1226,8 @@ function renderBasicInfo() {
     }
     html += '</div>';
   });
+
+  html += '</div></details>';
 
   // Free-form input for qualitative info
   html += `<div style="margin-top:20px;padding-top:16px;border-top:2px solid var(--primary);">
@@ -1572,8 +1602,9 @@ function renderDiffView(step) {
       <p style="font-weight:600;font-size:14px;margin-bottom:8px;">AIに追加修正を指示</p>
       <p style="font-size:12px;color:var(--text-light);margin-bottom:8px;">生成された内容をベースに、さらに修正したい点を伝えてください</p>
       <div style="display:flex;gap:8px;">
-        <textarea id="ai_revision_input" rows="2" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"
-          placeholder="例：もっとカジュアルなトーンにして、未経験歓迎を強調して、冒頭をもっと短くして"></textarea>
+        <textarea id="ai_revision_input" rows="3" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"
+          onchange="saveQuestion('_revision', this.value)"
+          placeholder="例：もっとカジュアルなトーンにして、未経験歓迎を強調して、冒頭をもっと短くして">${escapeHtml(state.data['_revision'] || '')}</textarea>
         <button class="btn-ai" onclick="reviseDiffWithAI()" style="align-self:flex-start;white-space:nowrap;">修正</button>
       </div>
       <div id="ai-revise-status"></div>
@@ -1717,6 +1748,19 @@ function toggleCheck(i) {
 
 function nextStep() {
   const p = PATTERNS[state.pattern];
+
+  // Warn if existing questions not filled (step 0 for patterns with existingQuestions)
+  if (p.needsExisting && state.step === 0 && p.existingQuestions) {
+    const requiredQs = { 4: 'change_items', 5: 'new_target', 6: 'appeal_selected' };
+    const qId = requiredQs[state.pattern];
+    if (qId && !state.data[qId]) {
+      const labels = { 4: '変更内容', 5: '新しいターゲット像', 6: '新しい訴求軸' };
+      if (!confirm(`「${labels[state.pattern]}」が未入力です。\n入力しないとAIが適切な修正案を生成できません。\n\nこのまま進みますか？`)) {
+        return;
+      }
+    }
+  }
+
   if (state.step < p.steps.length - 1) {
     state.step++;
     pushHistory();

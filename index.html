@@ -1460,6 +1460,20 @@ function renderDiffView(step) {
       </div>`;
   });
 
+  // AI revision input (shown after first generation)
+  if (step.aiDiff && !!getApiKey()) {
+    html += `<div style="margin-top:20px;padding:16px;background:#f8f9fb;border:1.5px solid var(--border);border-radius:10px;">
+      <p style="font-weight:600;font-size:14px;margin-bottom:8px;">AIに追加修正を指示</p>
+      <p style="font-size:12px;color:var(--text-light);margin-bottom:8px;">生成された内容をベースに、さらに修正したい点を伝えてください</p>
+      <div style="display:flex;gap:8px;">
+        <textarea id="ai_revision_input" rows="2" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"
+          placeholder="例：もっとカジュアルなトーンにして、未経験歓迎を強調して、冒頭をもっと短くして"></textarea>
+        <button class="btn-ai" onclick="reviseDiffWithAI()" style="align-self:flex-start;white-space:nowrap;">修正</button>
+      </div>
+      <div id="ai-revise-status"></div>
+    </div>`;
+  }
+
   return html;
 }
 
@@ -2059,21 +2073,20 @@ async function generateWithAI() {
 }
 
 // ===== AI Diff Generation =====
-function buildDiffPrompt() {
+function buildDiffPrompt(additionalInstruction) {
   const d = state.data;
   const p = state.pattern;
   const step = PATTERNS[p].steps[state.step];
   const targetFields = step.diffFields;
 
-  // Collect existing content for the target fields
-  const existing = {};
-  targetFields.forEach(fid => {
-    const val = state.existingParsed[fid] || state.formData[fid] || '';
-    const field = FIELDS.find(f => f.id === fid);
-    if (field && val) existing[fid] = val;
+  // Collect ALL existing content (full context)
+  const allExisting = {};
+  FIELDS.forEach(f => {
+    const val = state.existingParsed[f.id] || '';
+    if (val) allExisting[f.id] = val;
   });
 
-  const existingText = Object.entries(existing).map(([fid, val]) => {
+  const fullExistingText = Object.entries(allExisting).map(([fid, val]) => {
     const field = FIELDS.find(f => f.id === fid);
     return `【${field.label}（${fid}）】\n${val}`;
   }).join('\n\n');
@@ -2083,78 +2096,119 @@ function buildDiffPrompt() {
     return `- ${field.label}（${fid}）`;
   }).join('\n');
 
+  // For revision: include current "after" state
+  let currentAfterText = '';
+  if (additionalInstruction) {
+    currentAfterText = '\n\n## 現在の修正案（これをベースに修正してください）\n';
+    targetFields.forEach(fid => {
+      const field = FIELDS.find(f => f.id === fid);
+      const val = state.formData[fid] || '';
+      if (val) currentAfterText += `【${field.label}（${fid}）】\n${val}\n\n`;
+    });
+  }
+
   let instruction = '';
 
   if (p === 2) {
-    // 見せ方変更
     const newTitle = d['new_jobtitle'] || '';
     const problem = d['flow_problem'] || '';
-    instruction = `仕事内容自体は変えずに、検索のされ方・入口を変えてください。
-${newTitle ? '新しい職種名は「' + newTitle + '」です。この職種名に合うようにキャッチコピーや本文の表現を調整してください。' : '検索されやすい職種名を提案し、それに合わせて修正してください。'}
-${problem ? '現在の課題：' + problem : ''}
-・仕事内容の実質的な中身は変えないこと
-・新しい職種名で検索した時に自然に見えるようにすること
-・キーワードを自然に盛り込むこと`;
+    instruction = `【見せ方変更】仕事内容自体は変えずに、検索のされ方・入口を変えてください。
+
+★最重要指示★
+${newTitle ? '新しい職種名を「' + newTitle + '」に変更してください。\nキャッチコピー・仕事内容の冒頭を、この新しい職種名に完全に合わせて書き換えてください。' : '検索されやすい職種名を提案し、それに合わせて修正してください。'}
+${problem ? '\n変更の狙い：' + problem : ''}
+
+具体的にやること：
+・jobTitleを新しい職種名に変更する
+・catchCopyを新職種名に合った内容に全面的に書き換える
+・jobDescriptionの冒頭を新職種名に合わせて変える（業務内容の実質は変えない）
+・検索キーワードとして「${newTitle}」関連ワードを自然に盛り込む`;
 
   } else if (p === 3) {
-    // リライト
     const issues = d['issue_points'] || '';
-    instruction = `条件やターゲットは一切変えずに、伝わりやすさ・読みやすさを改善してください。
-${issues ? '改善してほしい点：' + issues : ''}
-・重複・無駄を削除する
-・結論→理由→詳細の流れで構成する
-・箇条書きを活用してスマホでも読みやすくする
-・具体的でわかりやすい表現にする
-・1日のスケジュール例があれば残す、なければ追加を検討する
-・給与、勤務時間などの条件は絶対に変えないこと`;
+    instruction = `【リライト】条件やターゲットは一切変えずに、伝わりやすさ・読みやすさを改善してください。
+
+★最重要指示★
+${issues ? 'ユーザーが求める改善点：\n' + issues + '\n\n上記の改善点を最優先で反映してください。' : '全体的に読みやすく、伝わりやすくしてください。'}
+
+具体的にやること：
+・重複・無駄な表現を削除してスッキリさせる
+・結論→理由→詳細の流れで構成し直す
+・長い文章は箇条書きに変換する（スマホで読みやすく）
+・抽象的な表現を具体的にする（数字・固有名詞を活用）
+・1日のスケジュール例があれば活かす
+・給与、勤務時間などの条件は絶対に変えない`;
 
   } else if (p === 4) {
-    // 条件変更
     const changes = d['change_items'] || '';
-    instruction = `以下の条件変更を原稿に反映してください。
-変更内容：${changes}
-・該当する全ての箇所（キャッチコピー、仕事内容、給与欄、補足欄など）を漏れなく更新すること
-・変更に合わせてキャッチコピーも魅力的に更新すること
-・変更していない箇所の内容は変えないこと`;
+    instruction = `【条件変更】以下の条件変更を原稿の該当箇所すべてに反映してください。
+
+★最重要指示★
+変更内容：
+${changes}
+
+この変更を、以下の全ての箇所に漏れなく反映すること：
+・キャッチコピー（数字が含まれていれば更新）
+・仕事内容（条件に言及している箇所があれば更新）
+・給与欄・給与の補足
+・待遇・福利厚生
+・その他、旧条件が記載されている全ての箇所
+条件変更に関係ない部分は変えないこと。`;
 
   } else if (p === 5) {
-    // ターゲット変更
     const newTarget = d['new_target'] || '';
-    instruction = `以下の新しいターゲットに合わせて原稿を書き換えてください。
+    instruction = `【ターゲット変更】採用したい人物像を変更します。原稿を新しいターゲットに合わせて全面的に書き換えてください。
+
+★最重要指示★
 新しいターゲット：${newTarget}
-・このターゲットの悩み・ニーズに応える表現にすること
-・キャッチコピーを新ターゲットに刺さる内容に変更すること
-・仕事内容の冒頭を新ターゲットに響く書き出しにすること
-・応募資格を新ターゲットに合わせること（条件を広げる/絞る）
-・アピールポイントを新ターゲットの悩みに応える内容にすること
-・全体のトーン・文体を新ターゲットに合わせて統一すること
-・仕事の中身自体（業務内容）は変えないこと`;
+
+このターゲットの立場で考えてください：
+・この人はどんな悩みを持っているか？
+・この人はどんな言葉に反応するか？
+・この人が「自分のことだ」と思える表現は何か？
+
+具体的にやること：
+・catchCopyを新ターゲットが「おっ」と思う内容に完全に書き換える
+・jobDescriptionの冒頭を新ターゲットに語りかける書き出しに変える
+・reqMustを新ターゲットが応募しやすい条件に調整する（ハードルを上げすぎない）
+・reqWelcomeを新ターゲットが「自分も当てはまる」と思える条件にする
+・appealPointsを新ターゲットの悩み・ニーズに応える内容にする
+・全体のトーン・文体を新ターゲットに合わせる
+・仕事の中身自体（業務内容）は変えない`;
 
   } else if (p === 6) {
-    // 訴求軸変更
     const newAppeal = d['appeal_selected'] || '';
-    instruction = `同じターゲットに対して、魅力の見せ方を変えてください。
+    instruction = `【訴求軸変更】同じターゲットに対して、魅力の見せ方を変えます。
+
+★最重要指示★
 新しい訴求軸：${newAppeal}
-・キャッチコピーを新訴求軸を前面に出した内容に変更すること
-・仕事内容の冒頭で新訴求軸に触れること
-・アピールポイントの並び順を新訴求軸が最初に来るよう再構成すること
-・待遇・福利厚生も訴求軸に関連する項目を上に持ってくること
-・ターゲット自体は変えないこと
-・仕事の中身自体（業務内容）は変えないこと`;
+
+この訴求軸を前面に押し出してください。
+
+具体的にやること：
+・catchCopyを「${newAppeal}」を全面に出した内容に完全に書き換える
+・jobDescriptionの冒頭で「${newAppeal}」に触れ、求職者の関心を引く
+・appealPointsの並び順を、新訴求軸に関連するものが最初に来るよう再構成する
+・benefitsも訴求軸に関連する項目を上に持ってくる
+・ターゲット自体は変えない
+・仕事の中身自体は変えない`;
   }
 
   return `あなたはIndeed求人原稿のプロライターです。既存の求人原稿を修正してください。
 
-## 修正指示
 ${instruction}
+${additionalInstruction ? '\n## 追加の修正指示\n' + additionalInstruction : ''}
 
-## 既存原稿（修正対象フィールドのみ）
-${existingText}
+## 既存原稿（全体）
+${fullExistingText}
+${currentAfterText}
 
-## 出力フィールド（JSONで出力）
+## 出力フィールド（以下のフィールドのみJSON形式で出力）
 ${outputFields}
 
 ## 共通ルール
+- ★最重要指示★に書かれた内容を最優先で反映すること
+- 元の原稿から大きく変えること。小手先の修正ではなく、指示に沿った本質的な書き換えをすること
 - スマホで読みやすいように箇条書きを活用する
 - 自然な文体で、堅すぎない表現にする
 - 求める人材は必須条件(reqMust)と歓迎条件(reqWelcome)に分ける
@@ -2220,6 +2274,71 @@ async function generateDiffWithAI() {
     console.error(e);
     showToast('エラー: ' + e.message);
     btnArea.innerHTML = '<button class="btn-ai" onclick="generateDiffWithAI()">再試行</button>';
+  }
+}
+
+async function reviseDiffWithAI() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showToast('API設定からキーを入力してください');
+    return;
+  }
+
+  const inputEl = document.getElementById('ai_revision_input');
+  const instruction = inputEl ? inputEl.value.trim() : '';
+  if (!instruction) {
+    showToast('修正内容を入力してください');
+    return;
+  }
+
+  const statusEl = document.getElementById('ai-revise-status');
+  statusEl.innerHTML = '<div class="ai-loading" style="margin-top:8px;"><div class="spinner"></div>修正中...</div>';
+
+  try {
+    const prompt = buildDiffPrompt(instruction);
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API Error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content[0].text;
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AIの応答からJSONを抽出できませんでした');
+
+    const generated = JSON.parse(jsonMatch[0]);
+
+    const step = PATTERNS[state.pattern].steps[state.step];
+    step.diffFields.forEach(fid => {
+      if (generated[fid]) {
+        state.formData[fid] = generated[fid];
+      }
+    });
+
+    showToast('修正しました！');
+    renderWorkflow();
+
+  } catch (e) {
+    console.error(e);
+    showToast('エラー: ' + e.message);
+    statusEl.innerHTML = '';
   }
 }
 

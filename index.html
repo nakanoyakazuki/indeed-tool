@@ -527,6 +527,75 @@
     border-radius: 3px;
     transition: width 0.3s;
   }
+
+  /* Template button */
+  .template-btn {
+    display: inline-block;
+    padding: 4px 12px;
+    background: #eef3fb;
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--primary);
+    cursor: pointer;
+    margin-left: 8px;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+
+  .template-btn:hover {
+    background: var(--primary);
+    color: white;
+  }
+
+  /* Mobile preview */
+  .mobile-preview-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .mobile-preview-toggle .toggle-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-family: inherit;
+    font-weight: 600;
+  }
+
+  .mobile-preview-toggle .toggle-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .preview-mobile-frame {
+    max-width: 375px;
+    margin: 0 auto;
+    border: 2px solid #333;
+    border-radius: 20px;
+    padding: 16px;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  .mobile-warning {
+    background: #fef3c7;
+    border: 1px solid var(--warning);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #92400e;
+  }
+
+  .mobile-warning strong {
+    display: block;
+    margin-bottom: 2px;
+  }
 </style>
 </head>
 <body>
@@ -600,9 +669,13 @@ const FIELDS = [
   { id: 'workHours', label: '勤務時間・曜日', required: true, type: 'textarea', rows: 2, tip: '例：9:00〜18:00（月〜金）' },
   { id: 'insurance', label: '社会保険', required: false, type: 'input', tip: '例：社会保険完備' },
   { id: 'trialPeriod', label: '試用期間', required: false, type: 'input', tip: '例：3ヶ月（条件変更なし）' },
-  { id: 'jobDescription', label: '仕事内容', required: true, type: 'textarea', rows: 8, tip: '具体的な業務内容を箇条書きで。1日の流れを入れると効果的' },
+  { id: 'jobDescription', label: '仕事内容', required: true, type: 'textarea', rows: 8, hasTemplate: true,
+    tip: '「誰に・何を・どのくらい・どうする」を具体的に。1日のスケジュール例を入れると応募率UP' },
   { id: 'appealPoints', label: 'アピールポイント', required: false, type: 'textarea', rows: 4, tip: '他社と差別化できるポイント' },
-  { id: 'requirements', label: '求める人材', required: true, type: 'textarea', rows: 4, tip: '必須条件と歓迎条件を分けて記載' },
+  { id: 'reqMust', label: '求める人材【必須条件】', required: true, type: 'textarea', rows: 3,
+    tip: '応募に必要な最低条件のみ記載（例：普通自動車免許）。条件を絞りすぎると応募が減るので注意' },
+  { id: 'reqWelcome', label: '求める人材【歓迎条件】', required: false, type: 'textarea', rows: 3,
+    tip: 'あると望ましいスキル・経験（例：接客経験者歓迎、ブランクOK）' },
   { id: 'holidays', label: '休暇・休日', required: false, type: 'textarea', rows: 2, tip: '例：完全週休2日制（土日祝）、年末年始休暇' },
   { id: 'locationNote', label: '勤務地の補足', required: false, type: 'textarea', rows: 2 },
   { id: 'access', label: 'アクセス', required: false, type: 'input', tip: '例：○○駅から徒歩5分' },
@@ -652,6 +725,8 @@ const PATTERNS = {
           '仕事内容が具体的に書かれているか',
           '給与・勤務時間に矛盾がないか',
           '応募資格がターゲットに合っているか',
+          '必須条件と歓迎条件が明確に分かれているか',
+          'スマホで見た時に読みやすいか（箇条書き・短文）',
           '誤字脱字がないか',
         ]
       }
@@ -728,7 +803,7 @@ const PATTERNS = {
       },
       { title: '表現の改善', hint: 'わかりやすく・具体的にする',
         isDiff: true,
-        diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'requirements']
+        diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'reqMust', 'reqWelcome']
       },
       { title: '原稿の仕上げ', hint: '箇条書き化・視認性を上げる',
         isMainForm: true
@@ -740,6 +815,7 @@ const PATTERNS = {
           'ターゲットが変わっていないか',
           '情報の過不足がないか',
           '箇条書きで読みやすくなっているか',
+          'スマホで見た時に読みやすいか（1文が長すぎないか）',
           '誤字脱字がないか',
         ]
       }
@@ -818,7 +894,7 @@ const PATTERNS = {
       },
       { title: '歓迎条件・ストーリーの調整', hint: '応募資格とアピールポイントを新ターゲット向けに',
         isDiff: true,
-        diffFields: ['requirements', 'appealPoints']
+        diffFields: ['reqMust', 'reqWelcome', 'appealPoints']
       },
       { title: 'トーンの統一チェック', hint: '全体が新ターゲット向けになっているか',
         isChecklist: true,
@@ -1007,11 +1083,17 @@ function renderQuestions(step) {
 
 function renderMainForm() {
   let html = '<div class="guide-box"><strong>Indeedの原稿フィールドに入力してください</strong>必須項目を中心に、前のステップで決めた内容を反映させましょう。</div>';
+  html += '<div class="mobile-warning"><strong>スマホ表示を意識しましょう</strong>Indeedの検索・応募の約70%はスマホ経由です。長い文章は箇条書きにし、1文を短くすると効果的です。</div>';
 
   FIELDS.forEach(f => {
     const val = state.formData[f.id] || state.existingParsed[f.id] || '';
     html += `<div class="form-group">
-      <label>${f.label}${f.required ? '<span class="required">*必須</span>' : '<span class="optional">任意</span>'}</label>`;
+      <label>${f.label}${f.required ? '<span class="required">*必須</span>' : '<span class="optional">任意</span>'}`;
+
+    if (f.hasTemplate) {
+      html += `<span class="template-btn" onclick="insertTemplate('${f.id}')">テンプレ挿入</span>`;
+    }
+    html += '</label>';
 
     if (f.type === 'textarea') {
       html += `<textarea id="f_${f.id}" rows="${f.rows || 3}"
@@ -1098,6 +1180,13 @@ function showPreview() {
     </div>
   </div>`;
 
+  // Mobile/PC toggle
+  html += `<div class="mobile-preview-toggle">
+    <button class="toggle-btn active" id="btn-pc" onclick="setPreviewMode('pc')">PC表示</button>
+    <button class="toggle-btn" id="btn-sp" onclick="setPreviewMode('sp')">スマホ表示</button>
+  </div>`;
+
+  html += '<div id="preview-wrapper">';
   html += '<div class="preview-section"><div class="preview-header"><span>Indeed原稿プレビュー</span>';
   html += '<button class="btn" style="background:white;color:var(--primary);padding:6px 16px;font-size:13px;" onclick="copyAll()">全文コピー</button>';
   html += '</div><div class="preview-body">';
@@ -1110,7 +1199,7 @@ function showPreview() {
     </div>`;
   });
 
-  html += '</div></div>';
+  html += '</div></div></div>';
 
   // Strategy summary
   html += '<div class="card" style="margin-top:16px;"><h2>設計メモ</h2>';
@@ -1144,6 +1233,54 @@ function saveQuestion(id, val) {
 
 function saveField(id, val) {
   state.formData[id] = val;
+}
+
+function insertTemplate(fieldId) {
+  if (fieldId === 'jobDescription') {
+    const template = `【仕事内容】
+・
+・
+・
+
+【1日の流れ（例）】
+09:00　出社・朝礼
+09:30
+12:00　昼休憩（1時間）
+13:00
+17:00　日報作成・片付け
+17:30　退社
+
+【チーム体制】
+・配属先：
+・人数：名（男性 名・女性 名）
+・年齢層：代〜代が中心
+
+【入社後の流れ】
+・1ヶ月目：
+・2ヶ月目：
+・3ヶ月目以降：`;
+    const el = document.getElementById('f_' + fieldId);
+    if (el) {
+      const current = el.value;
+      el.value = current ? current + '\n\n' + template : template;
+      saveField(fieldId, el.value);
+      showToast('テンプレートを挿入しました');
+    }
+  }
+}
+
+function setPreviewMode(mode) {
+  const wrapper = document.getElementById('preview-wrapper');
+  const btnPc = document.getElementById('btn-pc');
+  const btnSp = document.getElementById('btn-sp');
+  if (mode === 'sp') {
+    wrapper.innerHTML = '<div class="mobile-warning"><strong>スマホプレビュー（横幅375px）</strong>実際のIndeedアプリでの見え方に近い幅です。長い文章が読みにくくなっていないか確認しましょう。</div>' +
+      '<div class="preview-mobile-frame">' + wrapper.querySelector('.preview-section').outerHTML + '</div>';
+    btnSp.classList.add('active');
+    btnPc.classList.remove('active');
+  } else {
+    showPreview();
+  }
 }
 
 function toggleCheck(i) {
@@ -1207,7 +1344,9 @@ function parseExisting(text) {
     '試用期間': 'trialPeriod',
     '仕事内容': 'jobDescription',
     'アピールポイント': 'appealPoints',
-    '求める人材': 'requirements',
+    '求める人材': 'reqMust',
+    '必須条件': 'reqMust',
+    '歓迎条件': 'reqWelcome',
     '休暇・休日': 'holidays',
     '休暇': 'holidays',
     '休日': 'holidays',

@@ -988,6 +988,33 @@ let state = {
 };
 
 // ===== Render =====
+function pushHistory() {
+  history.pushState({ pattern: state.pattern, step: state.step }, '');
+}
+
+window.addEventListener('popstate', function(e) {
+  if (e.state) {
+    state.pattern = e.state.pattern;
+    state.step = e.state.step;
+    if (state.pattern) {
+      renderWorkflow();
+    } else {
+      goBackNoHistory();
+    }
+  } else {
+    goBackNoHistory();
+  }
+  window.scrollTo(0, 0);
+});
+
+function goBackNoHistory() {
+  state.pattern = null;
+  state.step = 0;
+  document.getElementById('screen-workflow').classList.add('hidden');
+  document.getElementById('screen-workflow').innerHTML = '';
+  document.getElementById('screen-select').classList.remove('hidden');
+}
+
 function selectPattern(n) {
   state.pattern = n;
   state.step = 0;
@@ -996,6 +1023,7 @@ function selectPattern(n) {
   state.existingText = '';
   state.existingParsed = {};
   state.checklistState = {};
+  pushHistory();
   renderWorkflow();
 }
 
@@ -1616,31 +1644,25 @@ function nextStep() {
   const p = PATTERNS[state.pattern];
   if (state.step < p.steps.length - 1) {
     state.step++;
+    pushHistory();
     renderWorkflow();
     window.scrollTo(0, 0);
   }
 }
 
 function prevStep() {
-  if (state.step > 0) {
-    state.step--;
-    renderWorkflow();
-    window.scrollTo(0, 0);
-  }
+  history.back();
 }
 
 function jumpToStep(i) {
   state.step = i;
+  pushHistory();
   renderWorkflow();
   window.scrollTo(0, 0);
 }
 
 function goBack() {
-  state.pattern = null;
-  state.step = 0;
-  document.getElementById('screen-workflow').classList.add('hidden');
-  document.getElementById('screen-workflow').innerHTML = '';
-  document.getElementById('screen-select').classList.remove('hidden');
+  history.back();
 }
 
 function parseExisting(text) {

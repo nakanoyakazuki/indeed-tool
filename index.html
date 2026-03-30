@@ -776,6 +776,9 @@ const PATTERNS = {
           'キーワードが自然に盛り込まれているか',
           '1週間後に表示回数・応募数を比較する',
         ]
+      },
+      { title: 'クライアント報告', hint: '変更意図をクライアントに伝える報告文を作成',
+        isClientReport: true
       }
     ]
   },
@@ -866,6 +869,9 @@ const PATTERNS = {
           '魅力が伝わるキャッチコピーになっているか',
           '誤字脱字がないか',
         ]
+      },
+      { title: 'クライアント報告', hint: '変更内容をクライアントに伝える報告文を作成',
+        isClientReport: true
       }
     ]
   },
@@ -909,6 +915,9 @@ const PATTERNS = {
           '全体のトーン（文体・雰囲気）が統一されているか',
           '元のターゲット向けの表現が残っていないか',
         ]
+      },
+      { title: 'クライアント報告', hint: '変更意図をクライアントに伝える報告文を作成',
+        isClientReport: true
       }
     ]
   },
@@ -952,6 +961,9 @@ const PATTERNS = {
           '待遇・福利厚生の並び順が訴求軸と整合しているか',
           '全体を通して一貫したメッセージになっているか',
         ]
+      },
+      { title: 'クライアント報告', hint: '変更意図をクライアントに伝える報告文を作成',
+        isClientReport: true
       }
     ]
   }
@@ -1148,25 +1160,56 @@ function renderChecklist(step) {
   return html;
 }
 
-function renderClientReport() {
-  const reportVal = state.data['client_report'] || '';
+function generateReportTemplate() {
+  const co = state.formData['companyName'] || state.existingParsed['companyName'] || '○○';
+  const jt = state.formData['jobTitle'] || state.existingParsed['jobTitle'] || '○○';
+  const d = state.data;
+  const p = state.pattern;
 
-  // Auto-generate template from step data if empty
-  let template = '';
-  if (!reportVal) {
-    const companyName = state.formData['companyName'] || state.existingParsed['companyName'] || '○○';
-    const jobTitle = state.formData['jobTitle'] || state.existingParsed['jobTitle'] || '○○';
-    const issues = state.data['issue_points'] || '';
-    const impression = state.data['issue_impression'] || '';
-    const duplicate = state.data['duplicate'] || '';
-    const unnecessary = state.data['unnecessary'] || '';
-    const missing = state.data['missing'] || '';
-    const structure = state.data['structure_plan'] || '';
+  const header = `${co}様\n\nお世話になっております。\n「${jt}」の原稿`;
+  const footer = `\nご確認のほどよろしくお願いいたします。\n気になる点がございましたらお気軽にお申し付けください。`;
 
-    template = `${companyName}様
+  if (p === 2) {
+    // 見せ方変更
+    const oldTitle = d['flow_current'] || '（現在の職種名）';
+    const newTitle = d['new_jobtitle'] || '（新しい職種名）';
+    const reason = d['new_reason'] || '';
+    const problem = d['flow_problem'] || '';
+    const kwAdd = d['kw_add'] || '';
+    return `${header}について、見せ方（職種カテゴリー）の変更が完了しましたのでご報告いたします。
 
-お世話になっております。
-「${jobTitle}」の原稿リライトが完了しましたのでご報告いたします。
+■ 変更の背景
+${problem ? '・' + problem.split('\n')[0] : '・現在の職種名での表示回数・応募数が伸び悩んでいるため'}
+${d['flow_views'] ? '・現状数値：' + d['flow_views'] : ''}
+
+■ 主な変更点
+・職種名：「${oldTitle}」→「${newTitle}」
+${d['new_category'] && d['new_category'] !== '変更なし' ? '・職種カテゴリー：「' + d['new_category'] + '」に変更' : ''}
+${reason ? '・変更理由：' + reason.split('\n')[0] : ''}
+・キャッチコピーを新しい職種名に合わせて調整
+${kwAdd ? '・検索キーワードを追加：' + kwAdd.split('\n')[0] : ''}
+
+■ 変更していない点
+・仕事内容自体は変更しておりません
+・給与、勤務時間等の条件面もそのままです
+
+■ 期待される効果
+・求職者の検索にヒットしやすくなり、表示回数の増加が見込めます
+・職種名がより具体的になることで、クリック率の向上が期待できます
+
+■ 効果検証について
+・掲載後1週間を目安に、表示回数・クリック率・応募数を比較いたします
+・数値をもとに、追加の調整が必要かご報告いたします${footer}`;
+
+  } else if (p === 3) {
+    // リライト
+    const issues = d['issue_points'] || '';
+    const impression = d['issue_impression'] || '';
+    const duplicate = d['duplicate'] || '';
+    const unnecessary = d['unnecessary'] || '';
+    const missing = d['missing'] || '';
+    const structure = d['structure_plan'] || '';
+    return `${header}のリライトが完了しましたのでご報告いたします。
 
 ■ 今回の修正意図
 ${issues ? '・課題：' + issues.split('\n')[0] : '・課題：'}
@@ -1186,21 +1229,112 @@ ${structure ? '・構成を見直しました\n  → ' + structure.split('\n')[0
 ■ 期待される効果
 ・仕事内容が具体的になり、求職者が働くイメージを持ちやすくなります
 ・スマホでの閲覧時に読みやすくなり、離脱率の改善が見込めます
-・情報が整理されたことで、応募率の向上が期待できます
+・情報が整理されたことで、応募率の向上が期待できます${footer}`;
 
-ご確認のほどよろしくお願いいたします。
-気になる点がございましたらお気軽にお申し付けください。`;
+  } else if (p === 4) {
+    // 条件変更
+    const items = d['change_items'] || '';
+    const reason = d['change_reason'] || '';
+    const fields = d['affected_fields'] || '';
+    const attract = d['attractiveness'] || '';
+    return `${header}の条件変更が完了しましたのでご報告いたします。
+
+■ 変更内容
+${items ? items.split('\n').map(l => l.trim() ? '・' + l.trim() : '').filter(Boolean).join('\n') : '・（変更内容）'}
+${reason ? '\n■ 変更理由\n・' + reason.split('\n')[0] : ''}
+
+■ 修正した箇所
+${fields ? fields.split('\n').map(l => l.trim() ? '・' + l.trim() : '').filter(Boolean).join('\n') : '・給与欄\n・キャッチコピー\n・その他関連箇所'}
+※上記すべての箇所で整合性を確認済みです
+
+■ 変更していない点
+・仕事内容、ターゲット層、訴求軸は変更しておりません
+${attract ? '\n■ 補足\n・' + attract.split('\n')[0] : ''}
+
+■ 期待される効果
+・条件改善により、応募意欲の向上が期待できます
+・最新の正確な情報を掲載することで、入社後のミスマッチを防ぎます${footer}`;
+
+  } else if (p === 5) {
+    // ターゲット変更
+    const oldTgt = d['old_target'] || '（旧ターゲット）';
+    const newTgt = d['new_target'] || '（新ターゲット）';
+    const reason = d['target_reason'] || '';
+    const needs = d['needs'] || '';
+    const merit = d['new_merit'] || '';
+    return `${header}のターゲット変更が完了しましたのでご報告いたします。
+
+■ 変更の背景
+${reason ? '・' + reason.split('\n')[0] : '・採用状況を踏まえ、ターゲット層を見直しました'}
+
+■ ターゲットの変更
+・変更前：${oldTgt.split('\n')[0]}
+・変更後：${newTgt.split('\n')[0]}
+
+■ 新ターゲットに合わせた修正内容
+${needs ? '・想定する悩み・ニーズ：' + needs.split('\n')[0] : ''}
+${merit ? '・新たな訴求ポイント：' + merit.split('\n')[0] : ''}
+・キャッチコピーを新ターゲット向けに書き換え
+・仕事内容の冒頭を新ターゲットに響く表現に変更
+・応募資格（必須条件・歓迎条件）を新ターゲットに合わせて調整
+・全体のトーン・文体を統一
+
+■ 変更していない点
+・仕事内容自体（業務の中身）は変更しておりません
+・給与、勤務時間等の条件面もそのままです
+
+■ 期待される効果
+・新しいターゲット層からの応募増加が期待できます
+・ターゲットの悩みに寄り添った訴求により、応募率の向上が見込めます${footer}`;
+
+  } else if (p === 6) {
+    // 訴求軸変更
+    const current = d['current_appeal'] || '（現在の訴求軸）';
+    const selected = d['appeal_selected'] || d['main_message'] || '（新しい訴求軸）';
+    const result = d['current_result'] || '';
+    const candidates = d['appeal_candidates'] || '';
+    return `${header}の訴求軸変更が完了しましたのでご報告いたします。
+
+■ 変更の背景
+・現在の訴求軸：${current.split('\n')[0]}
+${result ? '・現状の課題：' + result.split('\n')[0] : ''}
+・同じターゲットに対して、より響く魅力の見せ方に変更いたしました
+
+■ 訴求軸の変更
+・変更前：${current.split('\n')[0]}
+・変更後：${selected.split('\n')[0]}
+${candidates ? '\n検討した候補：\n' + candidates.split('\n').map(l => l.trim() ? '  ' + l.trim() : '').filter(Boolean).join('\n') : ''}
+
+■ 主な修正箇所
+・キャッチコピーを新しい訴求軸に合わせて変更
+・仕事内容の冒頭で新訴求軸に触れるよう調整
+・アピールポイントの並び順を再構成
+・待遇・福利厚生の記載順を訴求軸に合わせて調整
+
+■ 変更していない点
+・ターゲット層は変更しておりません
+・仕事内容、給与、勤務時間等の条件面もそのままです
+
+■ 期待される効果
+・訴求軸の変更により、同じターゲット層への訴求力が向上します
+・クリック後の応募率改善が期待できます${footer}`;
+
   }
+  return '';
+}
+
+function renderClientReport() {
+  const reportVal = state.data['client_report'] || '';
+  const template = reportVal || generateReportTemplate();
 
   let html = '<div class="guide-box"><strong>修正意図をクライアントに報告するテンプレートです</strong>前のステップで入力した内容が自動で反映されます。自由に編集してください。</div>';
 
   html += `<div class="form-group">
     <label>報告文<span class="template-btn" onclick="copyReport()">コピー</span></label>
     <textarea id="client_report" rows="20" style="min-height:350px;font-size:13px;line-height:1.8;"
-      onchange="saveQuestion('client_report', this.value)">${escapeHtml(reportVal || template)}</textarea>
+      onchange="saveQuestion('client_report', this.value)">${escapeHtml(template)}</textarea>
   </div>`;
 
-  // Auto-save the generated template
   if (!reportVal && template) {
     setTimeout(() => { saveQuestion('client_report', template); }, 0);
   }

@@ -847,45 +847,24 @@ const PATTERNS = {
     name: '見せ方変更',
     needsExisting: true,
     steps: [
-      { title: '現状の流入確認', hint: '応募が少ない理由を分析する',
+      { title: '変更方針', hint: '検索のされ方をどう変えるか',
         questions: [
-          { id: 'flow_current', label: '現在の職種名・カテゴリー', type: 'input' },
-          { id: 'flow_problem', label: '課題（応募が少ない理由の仮説）', type: 'textarea', placeholder: '例：検索ボリュームが少ない職種名になっている' },
-          { id: 'flow_views', label: '現在の表示回数・応募数', type: 'input', placeholder: '例：表示500/応募2' },
+          { id: 'new_jobtitle', label: '新しい職種名（案）', type: 'input', placeholder: '例：事務→営業事務、清掃→ルームメイク' },
+          { id: 'flow_problem', label: '変更の狙い（任意）', type: 'textarea', placeholder: '例：検索ボリュームが少ない職種名になっている' },
         ]
       },
-      { title: 'ターゲットの検索行動', hint: 'どんなワードで探すか？',
-        questions: [
-          { id: 'search_behavior', label: '想定される検索ワード', type: 'textarea', placeholder: '例：「事務 未経験」「データ入力 在宅」' },
-          { id: 'search_competitor', label: '競合はどんな職種名を使っているか', type: 'textarea', placeholder: '' },
-        ]
-      },
-      { title: '職種名の再設計', hint: '例：事務→営業事務、清掃→ルームメイク',
-        questions: [
-          { id: 'new_jobtitle', label: '新しい職種名', type: 'input' },
-          { id: 'new_category', label: '新しい職種カテゴリー', type: 'select',
-            options: ['変更なし','事務・オフィスワーク','営業','販売・接客','飲食・フード','軽作業・物流','製造・工場','IT・エンジニア','医療・介護・福祉','教育','建設・土木','ドライバー・配送','清掃・メンテナンス','美容・理容','その他'] },
-          { id: 'new_reason', label: '変更理由', type: 'textarea', placeholder: 'なぜこの職種名にするか' },
-        ]
-      },
-      { title: 'タイトル・冒頭の修正', hint: '入口の印象を変える',
+      { title: '原稿の修正', hint: 'AIが職種名・見せ方に合わせて修正案を生成します',
         isDiff: true,
-        diffFields: ['catchCopy']
+        aiDiff: true,
+        diffFields: ['catchCopy', 'jobTitle', 'jobDescription', 'reqMust', 'reqWelcome', 'appealPoints']
       },
-      { title: 'キーワード調整', hint: '検索ヒットを意識して本文中のキーワードを見直す',
-        questions: [
-          { id: 'kw_add', label: '追加するキーワード', type: 'textarea', placeholder: '本文に盛り込むワード' },
-          { id: 'kw_remove', label: '削除・差し替えるワード', type: 'textarea', placeholder: '' },
-        ]
-      },
-      { title: '効果検証チェック', hint: '変更後の確認ポイント',
+      { title: '最終チェック', hint: '変更後の確認',
         isChecklist: true,
         items: [
           '仕事内容自体は変わっていないか',
           '新しい職種名で検索した時に違和感がないか',
           'タイトルと本文の内容が一致しているか',
-          'キーワードが自然に盛り込まれているか',
-          '1週間後に表示回数・応募数を比較する',
+          'スマホで見た時に読みやすいか',
         ]
       },
       { title: 'クライアント報告', hint: '変更意図をクライアントに伝える報告文を作成',
@@ -897,39 +876,23 @@ const PATTERNS = {
     name: 'リライト',
     needsExisting: true,
     steps: [
-      { title: '読みにくい箇所の洗い出し', hint: '既存原稿のどこが問題か特定する',
+      { title: '改善方針', hint: 'どう改善するか（任意：空欄でもAIが自動判断します）',
         questions: [
-          { id: 'issue_points', label: '課題のある箇所', type: 'textarea', placeholder: '例：仕事内容が長すぎる、待遇が整理されていない' },
-          { id: 'issue_impression', label: '全体の印象', type: 'textarea', placeholder: '例：堅い印象、情報過多で読みにくい' },
+          { id: 'issue_points', label: '気になる点・改善したい点（任意）', type: 'textarea', placeholder: '例：仕事内容が長すぎる、箇条書きにしたい、堅い印象を柔らかく' },
         ]
       },
-      { title: '情報の整理', hint: '重複・無駄を削除する',
-        questions: [
-          { id: 'duplicate', label: '重複している情報', type: 'textarea', placeholder: '' },
-          { id: 'unnecessary', label: '不要な情報', type: 'textarea', placeholder: '' },
-          { id: 'missing', label: '不足している情報', type: 'textarea', placeholder: '' },
-        ]
-      },
-      { title: '構成の整理', hint: '結論→理由→詳細の流れにする',
-        questions: [
-          { id: 'structure_plan', label: '新しい構成案', type: 'textarea', placeholder: '仕事内容の構成を箇条書きで' },
-        ]
-      },
-      { title: '表現の改善', hint: 'わかりやすく・具体的にする',
+      { title: '原稿の修正', hint: 'AIが読みやすさ・伝わりやすさを改善した案を生成します',
         isDiff: true,
+        aiDiff: true,
         diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'reqMust', 'reqWelcome']
-      },
-      { title: '原稿の仕上げ', hint: '箇条書き化・視認性を上げる',
-        isMainForm: true
       },
       { title: '最終チェック', hint: '意味が変わっていないか確認',
         isChecklist: true,
         items: [
           '条件（給与・時間等）が元と同じか',
           'ターゲットが変わっていないか',
-          '情報の過不足がないか',
           '箇条書きで読みやすくなっているか',
-          'スマホで見た時に読みやすいか（1文が長すぎないか）',
+          'スマホで見た時に読みやすいか',
           '誤字脱字がないか',
         ]
       },
@@ -942,42 +905,23 @@ const PATTERNS = {
     name: '条件変更',
     needsExisting: true,
     steps: [
-      { title: '変更内容の把握', hint: '何をどう変更するか正確に確認',
+      { title: '変更内容', hint: '何をどう変更するか',
         questions: [
           { id: 'change_items', label: '変更する項目と内容', type: 'textarea', placeholder: '例：時給1,100円→1,250円に変更' },
-          { id: 'change_reason', label: '変更理由', type: 'textarea', placeholder: '例：最低賃金改定に伴い' },
         ]
       },
-      { title: '該当箇所の洗い出し', hint: '給与・時間・待遇など、原稿内の全該当箇所を確認',
-        questions: [
-          { id: 'affected_fields', label: '修正が必要なフィールド', type: 'textarea', placeholder: '例：給与欄、キャッチコピー内の時給記載、待遇欄の手当' },
-        ]
+      { title: '原稿の修正', hint: 'AIが該当箇所を全て修正した案を生成します',
+        isDiff: true,
+        aiDiff: true,
+        diffFields: ['catchCopy', 'salary', 'salaryNote', 'jobDescription', 'workHours', 'benefits']
       },
-      { title: '原稿の更新', hint: '該当箇所を全て更新する',
-        isMainForm: true
-      },
-      { title: '整合性チェック', hint: '他の部分と矛盾がないか',
-        isChecklist: true,
-        items: [
-          'キャッチコピーの数字が更新されているか',
-          '仕事内容内の条件記載が更新されているか',
-          '給与と給与の補足に矛盾がないか',
-          '勤務時間と休日に矛盾がないか',
-          '待遇・福利厚生と変更内容が整合しているか',
-        ]
-      },
-      { title: '魅力度の確認', hint: '条件変更で魅力が上がっているか',
-        questions: [
-          { id: 'attractiveness', label: '魅力度の変化', type: 'textarea', placeholder: '変更によりアピールできるポイントは増えたか？' },
-          { id: 'catch_update', label: 'キャッチコピーの更新案', type: 'textarea', placeholder: '条件アップをキャッチコピーに反映する場合' },
-        ]
-      },
-      { title: '再掲載チェック', hint: '掲載前の最終確認',
+      { title: '最終チェック', hint: '矛盾がないか確認',
         isChecklist: true,
         items: [
           '変更内容が全箇所に反映されているか',
-          '矛盾する記載が残っていないか',
-          '魅力が伝わるキャッチコピーになっているか',
+          'キャッチコピーの数字が更新されているか',
+          '給与と給与の補足に矛盾がないか',
+          '勤務時間と休日に矛盾がないか',
           '誤字脱字がないか',
         ]
       },
@@ -990,40 +934,23 @@ const PATTERNS = {
     name: 'ターゲット変更',
     needsExisting: true,
     steps: [
-      { title: '新しいターゲットの明確化', hint: '年齢・状況・志向性を具体的に',
+      { title: '新しいターゲット', hint: '誰に届けたいか',
         questions: [
-          { id: 'old_target', label: '現在のターゲット', type: 'textarea', placeholder: '例：20代の経験者' },
-          { id: 'new_target', label: '新しいターゲット', type: 'textarea', placeholder: '例：30〜40代の未経験者・主婦(夫)層' },
-          { id: 'target_reason', label: '変更理由', type: 'textarea', placeholder: '例：経験者の応募が少なく、未経験からでも育成可能と判断' },
+          { id: 'new_target', label: '新しいターゲット像', type: 'textarea', placeholder: '例：30〜40代の未経験者・主婦(夫)層。家庭と両立したい、ブランクがあって不安な方' },
         ]
       },
-      { title: '悩み・ニーズの整理', hint: '新ターゲットが求めていることを把握',
-        questions: [
-          { id: 'needs', label: '新ターゲットの悩み・ニーズ', type: 'textarea', placeholder: '例：家庭と両立したい、ブランクがあって不安' },
-          { id: 'search_words', label: '新ターゲットの検索ワード', type: 'textarea', placeholder: '例：「主婦 パート」「未経験歓迎 事務」' },
-        ]
-      },
-      { title: 'メリットの再設計', hint: '新ターゲットに刺さるメリットを考える',
-        questions: [
-          { id: 'new_merit', label: '新しいメリット・訴求', type: 'textarea', placeholder: '例：時短勤務OK、ブランクありでも安心の研修制度' },
-        ]
-      },
-      { title: '冒頭文の書き換え', hint: 'キャッチコピーと仕事内容の冒頭を変更',
+      { title: '原稿の修正', hint: 'AIが新ターゲットに合わせて原稿を書き換えます',
         isDiff: true,
-        diffFields: ['catchCopy', 'jobDescription']
+        aiDiff: true,
+        diffFields: ['catchCopy', 'jobDescription', 'reqMust', 'reqWelcome', 'appealPoints']
       },
-      { title: '歓迎条件・ストーリーの調整', hint: '応募資格とアピールポイントを新ターゲット向けに',
-        isDiff: true,
-        diffFields: ['reqMust', 'reqWelcome', 'appealPoints']
-      },
-      { title: 'トーンの統一チェック', hint: '全体が新ターゲット向けになっているか',
+      { title: '最終チェック', hint: '新ターゲット向けになっているか確認',
         isChecklist: true,
         items: [
           'キャッチコピーが新ターゲットに刺さるか',
           '仕事内容の書き方が新ターゲットに合っているか',
           '応募資格が新ターゲットにマッチしているか',
-          'アピールポイントが新ターゲットの悩みに応えているか',
-          '全体のトーン（文体・雰囲気）が統一されているか',
+          '全体のトーンが統一されているか',
           '元のターゲット向けの表現が残っていないか',
         ]
       },
@@ -1036,40 +963,23 @@ const PATTERNS = {
     name: '訴求軸変更',
     needsExisting: true,
     steps: [
-      { title: '現在の訴求軸の把握', hint: '今、何を魅力として打ち出しているか',
+      { title: '新しい訴求軸', hint: '何を魅力として打ち出すか',
         questions: [
-          { id: 'current_appeal', label: '現在の訴求軸', type: 'textarea', placeholder: '例：高時給（時給1,500円〜）をメインに打ち出し' },
-          { id: 'current_result', label: '現在の効果', type: 'textarea', placeholder: '例：表示は多いが応募につながっていない' },
+          { id: 'appeal_selected', label: '新しい訴求軸', type: 'textarea', placeholder: '例：シフト自由で働きやすい環境、充実した研修制度で未経験でも安心' },
         ]
       },
-      { title: '新しい訴求軸の検討', hint: '時給・環境・成長・安定・人間関係など別の軸',
-        questions: [
-          { id: 'appeal_candidates', label: '候補となる訴求軸', type: 'textarea', placeholder: '例：①職場環境の良さ ②スキルアップ ③シフト柔軟性' },
-          { id: 'appeal_selected', label: '採用する新メイン訴求', type: 'input', placeholder: '例：シフト自由で働きやすい環境' },
-        ]
-      },
-      { title: 'メイン訴求の決定', hint: '1つに絞って強く打ち出す',
-        questions: [
-          { id: 'main_message', label: 'メインメッセージ', type: 'textarea', placeholder: '例：「週2日〜OK！自分のペースで働ける」' },
-          { id: 'sub_messages', label: 'サブメッセージ（2〜3個）', type: 'textarea', placeholder: '' },
-        ]
-      },
-      { title: 'タイトル・冒頭の変更', hint: 'キャッチコピーを新訴求軸に合わせる',
+      { title: '原稿の修正', hint: 'AIが新しい訴求軸に合わせて原稿を書き換えます',
         isDiff: true,
-        diffFields: ['catchCopy', 'jobDescription']
+        aiDiff: true,
+        diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'benefits']
       },
-      { title: 'メリットの並び順を再構成', hint: '新訴求軸を最初に持ってくる',
-        isDiff: true,
-        diffFields: ['appealPoints', 'benefits']
-      },
-      { title: '一貫性チェック', hint: 'ターゲットが変わっていないか・全体の統一感',
+      { title: '最終チェック', hint: '一貫性の確認',
         isChecklist: true,
         items: [
-          'ターゲット自体は変わっていないか（変わっていたらターゲット変更パターンへ）',
+          'ターゲット自体は変わっていないか',
           '新訴求軸がタイトルに反映されているか',
           '仕事内容の冒頭で新訴求軸に触れているか',
           'アピールポイントの順番が訴求軸に合っているか',
-          '待遇・福利厚生の並び順が訴求軸と整合しているか',
           '全体を通して一貫したメッセージになっているか',
         ]
       },
@@ -1495,12 +1405,33 @@ function copyReport() {
 }
 
 function renderDiffView(step) {
-  let html = '<div class="guide-box"><strong>変更前→変更後を対比しながら編集できます</strong></div>';
+  let html = '';
+
+  // AI auto-generate button for aiDiff steps
+  if (step.aiDiff) {
+    const hasKey = !!getApiKey();
+    const patternNames = { 2: '見せ方に合わせて', 3: '読みやすく', 4: '条件変更を反映して', 5: '新ターゲット向けに', 6: '新訴求軸に合わせて' };
+    const label = patternNames[state.pattern] || '';
+    html += `<div class="ai-bar">
+      <div class="ai-icon">AI</div>
+      <div class="ai-text">
+        <strong>AIで修正案を自動生成</strong>
+        既存原稿を${label}書き換えた案を生成します。生成後も自由に編集できます。
+      </div>
+      <div id="ai-diff-btn-area">
+        ${hasKey
+          ? '<button class="btn-ai" onclick="generateDiffWithAI()">自動生成</button>'
+          : '<button class="btn-ai" disabled title="API設定からキーを入力してください">API未設定</button>'}
+      </div>
+    </div>`;
+  } else {
+    html += '<div class="guide-box"><strong>変更前→変更後を対比しながら編集できます</strong></div>';
+  }
 
   step.diffFields.forEach(fieldId => {
     const field = FIELDS.find(f => f.id === fieldId);
     if (!field) return;
-    const before = state.existingParsed[fieldId] || state.formData[fieldId] || '';
+    const before = state.existingParsed[fieldId] || '';
     const after = state.formData[fieldId] || before;
 
     html += `<p style="font-weight:600;margin-bottom:8px;">${field.label}</p>
@@ -1511,7 +1442,7 @@ function renderDiffView(step) {
         </div>
         <div class="diff-panel after">
           <div class="diff-header">変更後（編集可）</div>
-          <textarea onchange="saveField('${fieldId}', this.value)">${escapeHtml(after)}</textarea>
+          <textarea id="diff_${fieldId}" onchange="saveField('${fieldId}', this.value)">${escapeHtml(after)}</textarea>
         </div>
       </div>`;
   });
@@ -2103,6 +2034,171 @@ async function generateWithAI() {
     btnArea.innerHTML = state.pattern === 1
       ? '<button class="btn-ai" onclick="generateWithAI()">再試行</button>'
       : '<button class="btn-ai" onclick="generateWithAI()">再試行</button>';
+  }
+}
+
+// ===== AI Diff Generation =====
+function buildDiffPrompt() {
+  const d = state.data;
+  const p = state.pattern;
+  const step = PATTERNS[p].steps[state.step];
+  const targetFields = step.diffFields;
+
+  // Collect existing content for the target fields
+  const existing = {};
+  targetFields.forEach(fid => {
+    const val = state.existingParsed[fid] || state.formData[fid] || '';
+    const field = FIELDS.find(f => f.id === fid);
+    if (field && val) existing[fid] = val;
+  });
+
+  const existingText = Object.entries(existing).map(([fid, val]) => {
+    const field = FIELDS.find(f => f.id === fid);
+    return `【${field.label}（${fid}）】\n${val}`;
+  }).join('\n\n');
+
+  const outputFields = targetFields.map(fid => {
+    const field = FIELDS.find(f => f.id === fid);
+    return `- ${field.label}（${fid}）`;
+  }).join('\n');
+
+  let instruction = '';
+
+  if (p === 2) {
+    // 見せ方変更
+    const newTitle = d['new_jobtitle'] || '';
+    const problem = d['flow_problem'] || '';
+    instruction = `仕事内容自体は変えずに、検索のされ方・入口を変えてください。
+${newTitle ? '新しい職種名は「' + newTitle + '」です。この職種名に合うようにキャッチコピーや本文の表現を調整してください。' : '検索されやすい職種名を提案し、それに合わせて修正してください。'}
+${problem ? '現在の課題：' + problem : ''}
+・仕事内容の実質的な中身は変えないこと
+・新しい職種名で検索した時に自然に見えるようにすること
+・キーワードを自然に盛り込むこと`;
+
+  } else if (p === 3) {
+    // リライト
+    const issues = d['issue_points'] || '';
+    instruction = `条件やターゲットは一切変えずに、伝わりやすさ・読みやすさを改善してください。
+${issues ? '改善してほしい点：' + issues : ''}
+・重複・無駄を削除する
+・結論→理由→詳細の流れで構成する
+・箇条書きを活用してスマホでも読みやすくする
+・具体的でわかりやすい表現にする
+・1日のスケジュール例があれば残す、なければ追加を検討する
+・給与、勤務時間などの条件は絶対に変えないこと`;
+
+  } else if (p === 4) {
+    // 条件変更
+    const changes = d['change_items'] || '';
+    instruction = `以下の条件変更を原稿に反映してください。
+変更内容：${changes}
+・該当する全ての箇所（キャッチコピー、仕事内容、給与欄、補足欄など）を漏れなく更新すること
+・変更に合わせてキャッチコピーも魅力的に更新すること
+・変更していない箇所の内容は変えないこと`;
+
+  } else if (p === 5) {
+    // ターゲット変更
+    const newTarget = d['new_target'] || '';
+    instruction = `以下の新しいターゲットに合わせて原稿を書き換えてください。
+新しいターゲット：${newTarget}
+・このターゲットの悩み・ニーズに応える表現にすること
+・キャッチコピーを新ターゲットに刺さる内容に変更すること
+・仕事内容の冒頭を新ターゲットに響く書き出しにすること
+・応募資格を新ターゲットに合わせること（条件を広げる/絞る）
+・アピールポイントを新ターゲットの悩みに応える内容にすること
+・全体のトーン・文体を新ターゲットに合わせて統一すること
+・仕事の中身自体（業務内容）は変えないこと`;
+
+  } else if (p === 6) {
+    // 訴求軸変更
+    const newAppeal = d['appeal_selected'] || '';
+    instruction = `同じターゲットに対して、魅力の見せ方を変えてください。
+新しい訴求軸：${newAppeal}
+・キャッチコピーを新訴求軸を前面に出した内容に変更すること
+・仕事内容の冒頭で新訴求軸に触れること
+・アピールポイントの並び順を新訴求軸が最初に来るよう再構成すること
+・待遇・福利厚生も訴求軸に関連する項目を上に持ってくること
+・ターゲット自体は変えないこと
+・仕事の中身自体（業務内容）は変えないこと`;
+  }
+
+  return `あなたはIndeed求人原稿のプロライターです。既存の求人原稿を修正してください。
+
+## 修正指示
+${instruction}
+
+## 既存原稿（修正対象フィールドのみ）
+${existingText}
+
+## 出力フィールド（JSONで出力）
+${outputFields}
+
+## 共通ルール
+- スマホで読みやすいように箇条書きを活用する
+- 自然な文体で、堅すぎない表現にする
+- 求める人材は必須条件(reqMust)と歓迎条件(reqWelcome)に分ける
+
+指定されたフィールドの修正後の値をJSON形式で出力してください。キーはフィールドのid（括弧内の英語名）を使用してください。
+JSONのみを出力し、他の文章は含めないでください。`;
+}
+
+async function generateDiffWithAI() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showToast('API設定からキーを入力してください');
+    return;
+  }
+
+  const prompt = buildDiffPrompt();
+  if (!prompt) return;
+
+  const btnArea = document.getElementById('ai-diff-btn-area');
+  btnArea.innerHTML = '<div class="ai-loading"><div class="spinner"></div>生成中...</div>';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API Error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content[0].text;
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AIの応答からJSONを抽出できませんでした');
+
+    const generated = JSON.parse(jsonMatch[0]);
+
+    // Fill only the diff target fields
+    const step = PATTERNS[state.pattern].steps[state.step];
+    step.diffFields.forEach(fid => {
+      if (generated[fid]) {
+        state.formData[fid] = generated[fid];
+      }
+    });
+
+    showToast('修正案を生成しました！内容を確認・編集してください');
+    renderWorkflow();
+
+  } catch (e) {
+    console.error(e);
+    showToast('エラー: ' + e.message);
+    btnArea.innerHTML = '<button class="btn-ai" onclick="generateDiffWithAI()">再試行</button>';
   }
 }
 

@@ -716,43 +716,60 @@
   <span style="color:var(--text-light);font-size:11px;">※ブラウザに保存されます（サーバーには送信されません）</span>
 </div>
 
+<div style="text-align:center;padding:8px;background:#eef3fb;font-size:13px;color:var(--primary);">情報を入力するだけで、AIがIndeedの効果的な求人原稿を自動生成します</div>
+
 <div class="container" id="app">
   <!-- Screen 1: Pattern Selection -->
   <div id="screen-select">
     <div class="card">
-      <h2>作成パターンを選択</h2>
-      <p class="hint">目的に合ったパターンを選んでください</p>
+      <h2>何をしますか？</h2>
+      <p class="hint">迷ったら下の診断を参考にしてください</p>
+      <div style="background:#eef3fb;border-radius:8px;padding:14px 16px;margin-top:12px;font-size:13px;line-height:1.9;">
+        <strong>どれを選ぶ？かんたん診断</strong><br>
+        まだ原稿がない → <a href="#" onclick="selectPattern(1);return false" style="color:var(--primary);font-weight:600;">新規作成</a><br>
+        応募が来ない＆表示回数が少ない → <a href="#" onclick="selectPattern(2);return false" style="color:var(--primary);font-weight:600;">見せ方変更</a><br>
+        応募が来ない＆原稿が読みにくい → <a href="#" onclick="selectPattern(3);return false" style="color:var(--primary);font-weight:600;">リライト</a><br>
+        給与や時間が変わった → <a href="#" onclick="selectPattern(4);return false" style="color:var(--primary);font-weight:600;">条件変更</a><br>
+        採りたい人が変わった → <a href="#" onclick="selectPattern(5);return false" style="color:var(--primary);font-weight:600;">ターゲット変更</a><br>
+        同じ人に別の魅力を見せたい → <a href="#" onclick="selectPattern(6);return false" style="color:var(--primary);font-weight:600;">訴求軸変更</a>
+      </div>
     </div>
     <div class="pattern-grid">
-      <div class="pattern-card" onclick="selectPattern(1)">
+      <div class="pattern-card" onclick="selectPattern(1)" style="border-color:var(--primary);background:#f8faff;">
         <div class="number">1</div>
-        <h3>新規作成</h3>
+        <h3>新規作成 <span style="font-size:11px;background:var(--accent);color:white;padding:1px 8px;border-radius:8px;font-weight:600;">よく使う</span></h3>
         <p class="desc">求人情報をもとに原稿をゼロから作る</p>
+        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：新しいポジションの募集を始める</p>
       </div>
       <div class="pattern-card" onclick="selectPattern(2)">
         <div class="number">2</div>
         <h3>見せ方変更</h3>
         <p class="desc">仕事内容は変えず、検索され方・入口を変える</p>
+        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：「事務」→「営業事務」に職種名を変えて検索ヒットを増やす</p>
       </div>
-      <div class="pattern-card" onclick="selectPattern(3)">
+      <div class="pattern-card" onclick="selectPattern(3)" style="border-color:var(--primary);background:#f8faff;">
         <div class="number">3</div>
-        <h3>リライト</h3>
+        <h3>リライト <span style="font-size:11px;background:var(--accent);color:white;padding:1px 8px;border-radius:8px;font-weight:600;">よく使う</span></h3>
         <p class="desc">条件やターゲットは変えず、伝わりやすくする</p>
+        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：長すぎる仕事内容を箇条書きに整理する</p>
       </div>
       <div class="pattern-card" onclick="selectPattern(4)">
         <div class="number">4</div>
         <h3>条件変更</h3>
         <p class="desc">給与・時間など、事実情報を変更する</p>
+        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：時給1,100円→1,250円に上がった</p>
       </div>
       <div class="pattern-card" onclick="selectPattern(5)">
         <div class="number">5</div>
         <h3>ターゲット変更</h3>
         <p class="desc">採用したい人物像を変える</p>
+        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：経験者狙い→未経験・主婦層に広げる</p>
       </div>
       <div class="pattern-card" onclick="selectPattern(6)">
         <div class="number">6</div>
         <h3>訴求軸変更</h3>
         <p class="desc">同じターゲットに対して、魅力の見せ方を変える</p>
+        <p class="desc" style="margin-top:6px;font-size:11px;color:var(--primary);">例：高時給アピール→シフト柔軟アピールに切替</p>
       </div>
     </div>
   </div>
@@ -808,13 +825,13 @@ const PATTERNS = {
       { title: '最終チェック', hint: 'ズレがないか確認',
         isChecklist: true,
         items: [
-          '職種名が検索されやすいか',
-          '仕事内容が具体的に書かれているか',
-          '給与・勤務時間に矛盾がないか',
-          '応募資格がターゲットに合っているか',
-          '必須条件と歓迎条件が明確に分かれているか',
-          'スマホで見た時に読みやすいか（箇条書き・短文）',
-          '誤字脱字がないか',
+          '職種名が検索されやすいか → 求職者は職種名で検索するため、表示回数に直結',
+          '仕事内容が具体的に書かれているか → 「何をするかわからない」と応募されない',
+          '給与・勤務時間に矛盾がないか → 矛盾があると信頼を失い、Indeed側で非掲載リスクも',
+          '応募資格がターゲットに合っているか → 条件が厳しすぎると応募が減る',
+          '必須条件と歓迎条件が分かれているか → 分けないと「自分は対象外」と思われる',
+          'スマホで読みやすいか → 応募の70%はスマホ経由。長文は離脱される',
+          '誤字脱字がないか → 企業の信頼性に直結',
         ]
       }
     ]
@@ -1184,12 +1201,25 @@ function renderBasicInfo() {
 
   // Free-form input for qualitative info
   html += `<div style="margin-top:20px;padding-top:16px;border-top:2px solid var(--primary);">
-    <div class="guide-box"><strong>自由入力</strong>ターゲット、訴求ポイント、採用背景など、原稿に反映したいことを自由に書いてください。AIがこの内容をもとに原稿を生成します。</div>
+    <div class="guide-box">
+      <strong>自由入力（書くほどAIの精度が上がります）</strong>
+      以下のような情報を書くと、効果的な原稿が生成されます：
+      <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;">
+        <span>- どんな人を採りたいか（年齢・経験）</span>
+        <span>- その人が抱える悩み・求めること</span>
+        <span>- 自社の一番の魅力・強み</span>
+        <span>- 競合と違うポイント</span>
+        <span>- 具体的な仕事の中身</span>
+        <span>- 職場の雰囲気・チーム構成</span>
+        <span>- 採用の背景（増員・欠員など）</span>
+        <span>- 原稿のトーン（カジュアル・堅めなど）</span>
+      </div>
+    </div>
     <div class="form-group">
-      <label>原稿に反映したいこと<span class="optional">任意</span></label>
+      <label>原稿に反映したいこと<span class="optional">任意だが入力推奨</span></label>
       <textarea id="q_free_input" rows="6"
         onchange="saveQuestion('free_input', this.value)"
-        placeholder="例：&#10;・20〜30代の未経験者がターゲット&#10;・残業少なめ、研修充実をアピールしたい&#10;・カジュアルなトーンで&#10;・1日の流れを入れてほしい&#10;・急募">${escapeHtml(state.data['free_input'] || '')}</textarea>
+        placeholder="例：&#10;・30代の未経験者がターゲット。転職に不安を感じている人&#10;・研修3ヶ月あり＆先輩がマンツーマンでつくのが強み&#10;・残業月10時間以下を前面に出したい&#10;・カジュアルで親しみやすいトーンで&#10;・配送ドライバー、1日の流れを入れてほしい">${escapeHtml(state.data['free_input'] || '')}</textarea>
     </div>
   </div>`;
 
@@ -1211,7 +1241,7 @@ function renderMainForm() {
       <div id="ai-btn-area">
         ${hasKey
           ? '<button class="btn-ai" onclick="generateWithAI()">自動生成</button>'
-          : '<button class="btn-ai" disabled title="API設定からキーを入力してください">API未設定</button>'}
+          : '<button class="btn-ai" disabled onclick="toggleApiKey()" style="cursor:pointer;opacity:0.7;">右上「API設定」からキーを入力</button>'}
       </div>
     </div>`;
   } else if (state.pattern === 3) {
@@ -1224,7 +1254,7 @@ function renderMainForm() {
       <div id="ai-btn-area">
         ${hasKey
           ? '<button class="btn-ai" onclick="generateWithAI()">自動リライト</button>'
-          : '<button class="btn-ai" disabled title="API設定からキーを入力してください">API未設定</button>'}
+          : '<button class="btn-ai" disabled onclick="toggleApiKey()" style="cursor:pointer;opacity:0.7;">右上「API設定」からキーを入力</button>'}
       </div>
     </div>`;
   }
@@ -1510,7 +1540,7 @@ function renderDiffView(step) {
       <div id="ai-diff-btn-area">
         ${hasKey
           ? '<button class="btn-ai" onclick="generateDiffWithAI()">自動生成</button>'
-          : '<button class="btn-ai" disabled title="API設定からキーを入力してください">API未設定</button>'}
+          : '<button class="btn-ai" disabled onclick="toggleApiKey()" style="cursor:pointer;opacity:0.7;">右上「API設定」からキーを入力</button>'}
       </div>
     </div>`;
   } else {
@@ -1578,29 +1608,27 @@ function showPreview() {
 
   FIELDS.forEach(f => {
     const val = state.formData[f.id] || state.existingParsed[f.id] || '';
+    if (!val) return; // Skip empty fields
     html += `<div class="preview-field">
       <div class="label">${f.label}</div>
-      <div class="value ${val ? '' : 'empty'}">${val ? escapeHtml(val) : '未入力'}</div>
+      <div class="value">${escapeHtml(val)}</div>
     </div>`;
   });
 
   html += '</div></div></div>';
 
-  // Strategy summary
-  html += '<div class="card" style="margin-top:16px;"><h2>設計メモ</h2>';
-  const stepData = Object.entries(state.data);
-  if (stepData.length > 0) {
-    html += '<div style="font-size:13px;color:var(--text-light);">';
-    stepData.forEach(([key, val]) => {
-      if (val) {
-        html += `<p style="margin-bottom:4px;"><strong>${key}:</strong> ${escapeHtml(val)}</p>`;
-      }
-    });
-    html += '</div>';
-  } else {
-    html += '<p class="hint">ステップで入力されたメモはありません</p>';
-  }
-  html += '</div>';
+  // Indeed posting guide
+  html += `<div class="card" style="margin-top:16px;border:2px solid var(--success);">
+    <h2 style="color:var(--success);">原稿が完成しました</h2>
+    <p class="hint" style="margin-bottom:12px;">「全文コピー」して、Indeedに貼り付けてください</p>
+    <div style="font-size:13px;line-height:2;">
+      <strong>Indeedへの掲載手順：</strong><br>
+      1. 「全文コピー」ボタンをクリック<br>
+      2. <a href="https://employers.indeed.com/" target="_blank" style="color:var(--primary);">Indeed採用管理画面</a> にログイン<br>
+      3. 「求人を掲載」→ 各フィールドにコピーした内容を貼り付け<br>
+      4. プレビューで確認 → 掲載開始
+    </div>
+  </div>`;
 
   // Export buttons
   html += `<div class="btn-row">
@@ -1930,7 +1958,11 @@ function parseExisting(text) {
   // Show feedback
   const count = Object.keys(parsed).length;
   if (count > 0) {
-    showToast(`${count}件のフィールドを読み込みました`);
+    const fieldNames = Object.keys(parsed).map(fid => {
+      const f = FIELDS.find(x => x.id === fid);
+      return f ? f.label : fid;
+    }).join('、');
+    showToast(`${count}件を読み込み: ${fieldNames}`);
   } else if (text.trim()) {
     state.existingParsed.jobDescription = text;
     state.formData.jobDescription = state.formData.jobDescription || text;
@@ -2290,9 +2322,17 @@ ${outputFields}
 ## 共通ルール
 - ★最重要指示★に書かれた内容を最優先で反映すること
 - 元の原稿から大きく変えること。小手先の修正ではなく、指示に沿った本質的な書き換えをすること
-- スマホで読みやすいように箇条書きを活用する
-- 自然な文体で、堅すぎない表現にする
 - 求める人材は必須条件(reqMust)と歓迎条件(reqWelcome)に分ける
+
+## Indeedベストプラクティス（必ず守ること）
+- スマホで読みやすいように箇条書きを活用する（応募の70%はスマホ経由）
+- 仕事内容には「誰に・何を・どのくらい・どうする」を具体的に書く
+- 可能であれば1日のスケジュール例を含める（応募率が上がる）
+- 数字を具体的に入れる（「多い」ではなく「月10件」のように）
+- 大変な部分も正直に書く（ミスマッチ防止＝定着率UP）
+- 自然な文体で、堅すぎず親しみやすい表現にする
+- 1原稿1職種を徹底し、複数職種を混ぜない
+- 職種名に「年間休日125日」など職種と無関係な条件を入れない
 
 指定されたフィールドの修正後の値をJSON形式で出力してください。キーはフィールドのid（括弧内の英語名）を使用してください。
 JSONのみを出力し、他の文章は含めないでください。`;

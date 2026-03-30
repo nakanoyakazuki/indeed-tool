@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indeed原稿作成ツール</title>
+<style>
+  :root {
+    --primary: #2557a7;
+    --primary-hover: #1a4188;
+    --accent: #ff6b35;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --text: #2d2d2d;
+    --text-light: #6b7280;
+    --border: #e2e8f0;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --step-inactive: #cbd5e1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .header {
+    background: var(--primary);
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .header .badge {
+    background: var(--accent);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  /* Pattern Selection */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .pattern-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .pattern-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(37,87,167,0.15);
+    transform: translateY(-2px);
+  }
+
+  .pattern-card.selected {
+    border-color: var(--primary);
+    background: #eef3fb;
+  }
+
+  .pattern-card .number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .pattern-card h3 {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .pattern-card .desc {
+    font-size: 13px;
+    color: var(--text-light);
+  }
+
+  /* Steps */
+  .step-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: var(--card);
+    border-radius: 12px;
+    overflow-x: auto;
+  }
+
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .step-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    background: var(--step-inactive);
+    color: white;
+    transition: all 0.3s;
+  }
+
+  .step-dot.active {
+    background: var(--primary);
+    transform: scale(1.15);
+  }
+
+  .step-dot.done {
+    background: var(--success);
+  }
+
+  .step-line {
+    width: 20px;
+    height: 2px;
+    background: var(--step-inactive);
+    flex-shrink: 0;
+  }
+
+  .step-line.done {
+    background: var(--success);
+  }
+
+  .step-label {
+    font-size: 11px;
+    color: var(--text-light);
+    max-width: 60px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .step-label.active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .card h2 {
+    font-size: 18px;
+    margin-bottom: 4px;
+    color: var(--primary);
+  }
+
+  .card .hint {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 16px;
+  }
+
+  /* Form */
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .form-group label .required {
+    color: #ef4444;
+    margin-left: 4px;
+    font-size: 12px;
+  }
+
+  .form-group label .optional {
+    color: var(--text-light);
+    margin-left: 4px;
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background: white;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,87,167,0.1);
+  }
+
+  .form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  .form-group .char-count {
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 2px;
+  }
+
+  .form-group .field-tip {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 4px;
+    padding-left: 4px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg);
+  }
+
+  .btn-accent {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-accent:hover {
+    background: #e55a28;
+  }
+
+  .btn-success {
+    background: var(--success);
+    color: white;
+  }
+
+  /* Preview */
+  .preview-section {
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .preview-header {
+    background: var(--primary);
+    color: white;
+    padding: 12px 20px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .preview-body {
+    padding: 20px;
+    background: white;
+  }
+
+  .preview-field {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview-field:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .preview-field .label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .preview-field .value {
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .preview-field .value.empty {
+    color: var(--text-light);
+    font-style: italic;
+  }
+
+  .copy-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1e293b;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.3s;
+    z-index: 100;
+  }
+
+  .copy-toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Existing manuscript input */
+  .existing-input {
+    background: #fffbeb;
+    border: 1.5px solid var(--warning);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .existing-input h3 {
+    color: #92400e;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .existing-input textarea {
+    min-height: 200px;
+  }
+
+  /* Guide box */
+  .guide-box {
+    background: #eef3fb;
+    border-left: 4px solid var(--primary);
+    padding: 14px 16px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+
+  .guide-box strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Diff display for modification patterns */
+  .diff-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .diff-container { grid-template-columns: 1fr; }
+  }
+
+  .diff-panel {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .diff-panel.before {
+    border: 1.5px solid #fca5a5;
+  }
+
+  .diff-panel.after {
+    border: 1.5px solid #86efac;
+  }
+
+  .diff-panel .diff-header {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .diff-panel.before .diff-header {
+    background: #fef2f2;
+    color: #991b1b;
+  }
+
+  .diff-panel.after .diff-header {
+    background: #f0fdf4;
+    color: #166534;
+  }
+
+  .diff-panel textarea {
+    width: 100%;
+    border: none;
+    padding: 12px;
+    font-size: 13px;
+    font-family: inherit;
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .diff-panel textarea:focus {
+    outline: none;
+  }
+
+  .hidden { display: none !important; }
+
+  /* Checklist */
+  .checklist {
+    list-style: none;
+    padding: 0;
+  }
+
+  .checklist li {
+    padding: 8px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .checklist li input[type="checkbox"] {
+    margin-top: 4px;
+    accent-color: var(--primary);
+  }
+
+  .checklist li.checked {
+    color: var(--text-light);
+    text-decoration: line-through;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .progress-bar .fill {
+    height: 100%;
+    background: var(--success);
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Indeed原稿作成ツール</h1>
+  <span class="badge">v1.0</span>
+</div>
+
+<div class="container" id="app">
+  <!-- Screen 1: Pattern Selection -->
+  <div id="screen-select">
+    <div class="card">
+      <h2>作成パターンを選択</h2>
+      <p class="hint">目的に合ったパターンを選んでください</p>
+    </div>
+    <div class="pattern-grid">
+      <div class="pattern-card" onclick="selectPattern(1)">
+        <div class="number">1</div>
+        <h3>新規作成</h3>
+        <p class="desc">求人情報をもとに原稿をゼロから作る</p>
+      </div>
+      <div class="pattern-card" onclick="selectPattern(2)">
+        <div class="number">2</div>
+        <h3>見せ方変更</h3>
+        <p class="desc">仕事内容は変えず、検索され方・入口を変える</p>
+      </div>
+      <div class="pattern-card" onclick="selectPattern(3)">
+        <div class="number">3</div>
+        <h3>リライト</h3>
+        <p class="desc">条件やターゲットは変えず、伝わりやすくする</p>
+      </div>
+      <div class="pattern-card" onclick="selectPattern(4)">
+        <div class="number">4</div>
+        <h3>条件変更</h3>
+        <p class="desc">給与・時間など、事実情報を変更する</p>
+      </div>
+      <div class="pattern-card" onclick="selectPattern(5)">
+        <div class="number">5</div>
+        <h3>ターゲット変更</h3>
+        <p class="desc">採用したい人物像を変える</p>
+      </div>
+      <div class="pattern-card" onclick="selectPattern(6)">
+        <div class="number">6</div>
+        <h3>訴求軸変更</h3>
+        <p class="desc">同じターゲットに対して、魅力の見せ方を変える</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Workflow -->
+  <div id="screen-workflow" class="hidden"></div>
+</div>
+
+<div class="copy-toast" id="toast">コピーしました</div>
+
+<script>
+// ===== Data =====
+const FIELDS = [
+  { id: 'jobTitle', label: '職種名', required: true, type: 'input', tip: '検索されやすいキーワードを含めましょう（例：一般事務→営業事務）' },
+  { id: 'jobCategory', label: '職種カテゴリー', required: true, type: 'select',
+    options: ['事務・オフィスワーク','営業','販売・接客','飲食・フード','軽作業・物流','製造・工場','IT・エンジニア','医療・介護・福祉','教育','建設・土木','ドライバー・配送','清掃・メンテナンス','美容・理容','その他'] },
+  { id: 'catchCopy', label: '求人キャッチコピー', required: true, type: 'textarea', rows: 2, tip: '求職者が最初に目にする文。具体的な数字や魅力を盛り込む' },
+  { id: 'companyName', label: '会社名', required: true, type: 'input' },
+  { id: 'location', label: '勤務地', required: true, type: 'input', tip: '都道府県・市区町村・番地' },
+  { id: 'employmentType', label: '雇用形態', required: true, type: 'select',
+    options: ['正社員','契約社員','パート・アルバイト','派遣社員','業務委託','インターン','その他'] },
+  { id: 'salary', label: '給与', required: true, type: 'input', tip: '例：月給25万円〜35万円、時給1,200円〜' },
+  { id: 'workStyle', label: '勤務形態', required: false, type: 'select',
+    options: ['','オフィス勤務','リモートワーク','ハイブリッド','現場勤務'] },
+  { id: 'workHours', label: '勤務時間・曜日', required: true, type: 'textarea', rows: 2, tip: '例：9:00〜18:00（月〜金）' },
+  { id: 'insurance', label: '社会保険', required: false, type: 'input', tip: '例：社会保険完備' },
+  { id: 'trialPeriod', label: '試用期間', required: false, type: 'input', tip: '例：3ヶ月（条件変更なし）' },
+  { id: 'jobDescription', label: '仕事内容', required: true, type: 'textarea', rows: 8, tip: '具体的な業務内容を箇条書きで。1日の流れを入れると効果的' },
+  { id: 'appealPoints', label: 'アピールポイント', required: false, type: 'textarea', rows: 4, tip: '他社と差別化できるポイント' },
+  { id: 'requirements', label: '求める人材', required: true, type: 'textarea', rows: 4, tip: '必須条件と歓迎条件を分けて記載' },
+  { id: 'holidays', label: '休暇・休日', required: false, type: 'textarea', rows: 2, tip: '例：完全週休2日制（土日祝）、年末年始休暇' },
+  { id: 'locationNote', label: '勤務地の補足', required: false, type: 'textarea', rows: 2 },
+  { id: 'access', label: 'アクセス', required: false, type: 'input', tip: '例：○○駅から徒歩5分' },
+  { id: 'salaryNote', label: '給与の補足', required: false, type: 'textarea', rows: 2, tip: '例：賞与年2回、昇給年1回' },
+  { id: 'benefits', label: '待遇・福利厚生', required: false, type: 'textarea', rows: 3, tip: '交通費支給、社員割引、研修制度など' },
+  { id: 'other', label: 'その他', required: false, type: 'textarea', rows: 3 },
+];
+
+const PATTERNS = {
+  1: {
+    name: '新規作成',
+    steps: [
+      { title: '採用背景の確認', hint: 'なぜ採用するのか？増員・欠員・新規事業など',
+        questions: [
+          { id: 'bg_reason', label: '採用理由', type: 'textarea', placeholder: '例：事業拡大に伴う増員のため' },
+          { id: 'bg_urgency', label: '緊急度', type: 'select', options: ['','急募','通常','長期募集'] },
+          { id: 'bg_count', label: '採用予定人数', type: 'input', placeholder: '例：2名' },
+        ]
+      },
+      { title: 'ターゲット設定', hint: '誰を採るか？年齢・経験・志向性を明確にする',
+        questions: [
+          { id: 'tgt_persona', label: 'ターゲット像', type: 'textarea', placeholder: '例：20〜30代、未経験OK、安定志向の方' },
+          { id: 'tgt_concerns', label: 'ターゲットの悩み・ニーズ', type: 'textarea', placeholder: '例：残業が少ない仕事を探している、手に職をつけたい' },
+        ]
+      },
+      { title: '訴求軸の決定', hint: '何を魅力にするか？給与・環境・成長・安定など',
+        questions: [
+          { id: 'appeal_main', label: 'メイン訴求', type: 'input', placeholder: '例：未経験でも月給25万円〜' },
+          { id: 'appeal_sub', label: 'サブ訴求（2〜3個）', type: 'textarea', placeholder: '例：残業月10時間以下、充実した研修制度' },
+        ]
+      },
+      { title: '職種・見せ方設計', hint: 'どう検索されるか？職種名とカテゴリーを決める',
+        questions: [
+          { id: 'search_keywords', label: '想定検索キーワード', type: 'textarea', placeholder: '例：事務 未経験、データ入力 正社員' },
+          { id: 'search_jobtitle', label: '職種名の候補', type: 'input', placeholder: '例：データ入力スタッフ / 一般事務' },
+        ]
+      },
+      { title: '原稿作成', hint: 'タイトル → 本文 → 条件の順で入力',
+        isMainForm: true
+      },
+      { title: '最終チェック', hint: 'ズレがないか確認',
+        isChecklist: true,
+        items: [
+          '採用背景とターゲットに一貫性があるか',
+          '訴求軸がタイトル・冒頭に反映されているか',
+          '職種名が検索されやすいか',
+          '仕事内容が具体的に書かれているか',
+          '給与・勤務時間に矛盾がないか',
+          '応募資格がターゲットに合っているか',
+          '誤字脱字がないか',
+        ]
+      }
+    ]
+  },
+  2: {
+    name: '見せ方変更',
+    needsExisting: true,
+    steps: [
+      { title: '現状の流入確認', hint: '応募が少ない理由を分析する',
+        questions: [
+          { id: 'flow_current', label: '現在の職種名・カテゴリー', type: 'input' },
+          { id: 'flow_problem', label: '課題（応募が少ない理由の仮説）', type: 'textarea', placeholder: '例：検索ボリュームが少ない職種名になっている' },
+          { id: 'flow_views', label: '現在の表示回数・応募数', type: 'input', placeholder: '例：表示500/応募2' },
+        ]
+      },
+      { title: 'ターゲットの検索行動', hint: 'どんなワードで探すか？',
+        questions: [
+          { id: 'search_behavior', label: '想定される検索ワード', type: 'textarea', placeholder: '例：「事務 未経験」「データ入力 在宅」' },
+          { id: 'search_competitor', label: '競合はどんな職種名を使っているか', type: 'textarea', placeholder: '' },
+        ]
+      },
+      { title: '職種名の再設計', hint: '例：事務→営業事務、清掃→ルームメイク',
+        questions: [
+          { id: 'new_jobtitle', label: '新しい職種名', type: 'input' },
+          { id: 'new_category', label: '新しい職種カテゴリー', type: 'select',
+            options: ['変更なし','事務・オフィスワーク','営業','販売・接客','飲食・フード','軽作業・物流','製造・工場','IT・エンジニア','医療・介護・福祉','教育','建設・土木','ドライバー・配送','清掃・メンテナンス','美容・理容','その他'] },
+          { id: 'new_reason', label: '変更理由', type: 'textarea', placeholder: 'なぜこの職種名にするか' },
+        ]
+      },
+      { title: 'タイトル・冒頭の修正', hint: '入口の印象を変える',
+        isDiff: true,
+        diffFields: ['catchCopy']
+      },
+      { title: 'キーワード調整', hint: '検索ヒットを意識して本文中のキーワードを見直す',
+        questions: [
+          { id: 'kw_add', label: '追加するキーワード', type: 'textarea', placeholder: '本文に盛り込むワード' },
+          { id: 'kw_remove', label: '削除・差し替えるワード', type: 'textarea', placeholder: '' },
+        ]
+      },
+      { title: '効果検証チェック', hint: '変更後の確認ポイント',
+        isChecklist: true,
+        items: [
+          '仕事内容自体は変わっていないか',
+          '新しい職種名で検索した時に違和感がないか',
+          'タイトルと本文の内容が一致しているか',
+          'キーワードが自然に盛り込まれているか',
+          '1週間後に表示回数・応募数を比較する',
+        ]
+      }
+    ]
+  },
+  3: {
+    name: 'リライト',
+    needsExisting: true,
+    steps: [
+      { title: '読みにくい箇所の洗い出し', hint: '既存原稿のどこが問題か特定する',
+        questions: [
+          { id: 'issue_points', label: '課題のある箇所', type: 'textarea', placeholder: '例：仕事内容が長すぎる、待遇が整理されていない' },
+          { id: 'issue_impression', label: '全体の印象', type: 'textarea', placeholder: '例：堅い印象、情報過多で読みにくい' },
+        ]
+      },
+      { title: '情報の整理', hint: '重複・無駄を削除する',
+        questions: [
+          { id: 'duplicate', label: '重複している情報', type: 'textarea', placeholder: '' },
+          { id: 'unnecessary', label: '不要な情報', type: 'textarea', placeholder: '' },
+          { id: 'missing', label: '不足している情報', type: 'textarea', placeholder: '' },
+        ]
+      },
+      { title: '構成の整理', hint: '結論→理由→詳細の流れにする',
+        questions: [
+          { id: 'structure_plan', label: '新しい構成案', type: 'textarea', placeholder: '仕事内容の構成を箇条書きで' },
+        ]
+      },
+      { title: '表現の改善', hint: 'わかりやすく・具体的にする',
+        isDiff: true,
+        diffFields: ['catchCopy', 'jobDescription', 'appealPoints', 'requirements']
+      },
+      { title: '原稿の仕上げ', hint: '箇条書き化・視認性を上げる',
+        isMainForm: true
+      },
+      { title: '最終チェック', hint: '意味が変わっていないか確認',
+        isChecklist: true,
+        items: [
+          '条件（給与・時間等）が元と同じか',
+          'ターゲットが変わっていないか',
+          '情報の過不足がないか',
+          '箇条書きで読みやすくなっているか',
+          '誤字脱字がないか',
+        ]
+      }
+    ]
+  },
+  4: {
+    name: '条件変更',
+    needsExisting: true,
+    steps: [
+      { title: '変更内容の把握', hint: '何をどう変更するか正確に確認',
+        questions: [
+          { id: 'change_items', label: '変更する項目と内容', type: 'textarea', placeholder: '例：時給1,100円→1,250円に変更' },
+          { id: 'change_reason', label: '変更理由', type: 'textarea', placeholder: '例：最低賃金改定に伴い' },
+        ]
+      },
+      { title: '該当箇所の洗い出し', hint: '給与・時間・待遇など、原稿内の全該当箇所を確認',
+        questions: [
+          { id: 'affected_fields', label: '修正が必要なフィールド', type: 'textarea', placeholder: '例：給与欄、キャッチコピー内の時給記載、待遇欄の手当' },
+        ]
+      },
+      { title: '原稿の更新', hint: '該当箇所を全て更新する',
+        isMainForm: true
+      },
+      { title: '整合性チェック', hint: '他の部分と矛盾がないか',
+        isChecklist: true,
+        items: [
+          'キャッチコピーの数字が更新されているか',
+          '仕事内容内の条件記載が更新されているか',
+          '給与と給与の補足に矛盾がないか',
+          '勤務時間と休日に矛盾がないか',
+          '待遇・福利厚生と変更内容が整合しているか',
+        ]
+      },
+      { title: '魅力度の確認', hint: '条件変更で魅力が上がっているか',
+        questions: [
+          { id: 'attractiveness', label: '魅力度の変化', type: 'textarea', placeholder: '変更によりアピールできるポイントは増えたか？' },
+          { id: 'catch_update', label: 'キャッチコピーの更新案', type: 'textarea', placeholder: '条件アップをキャッチコピーに反映する場合' },
+        ]
+      },
+      { title: '再掲載チェック', hint: '掲載前の最終確認',
+        isChecklist: true,
+        items: [
+          '変更内容が全箇所に反映されているか',
+          '矛盾する記載が残っていないか',
+          '魅力が伝わるキャッチコピーになっているか',
+          '誤字脱字がないか',
+        ]
+      }
+    ]
+  },
+  5: {
+    name: 'ターゲット変更',
+    needsExisting: true,
+    steps: [
+      { title: '新しいターゲットの明確化', hint: '年齢・状況・志向性を具体的に',
+        questions: [
+          { id: 'old_target', label: '現在のターゲット', type: 'textarea', placeholder: '例：20代の経験者' },
+          { id: 'new_target', label: '新しいターゲット', type: 'textarea', placeholder: '例：30〜40代の未経験者・主婦(夫)層' },
+          { id: 'target_reason', label: '変更理由', type: 'textarea', placeholder: '例：経験者の応募が少なく、未経験からでも育成可能と判断' },
+        ]
+      },
+      { title: '悩み・ニーズの整理', hint: '新ターゲットが求めていることを把握',
+        questions: [
+          { id: 'needs', label: '新ターゲットの悩み・ニーズ', type: 'textarea', placeholder: '例：家庭と両立したい、ブランクがあって不安' },
+          { id: 'search_words', label: '新ターゲットの検索ワード', type: 'textarea', placeholder: '例：「主婦 パート」「未経験歓迎 事務」' },
+        ]
+      },
+      { title: 'メリットの再設計', hint: '新ターゲットに刺さるメリットを考える',
+        questions: [
+          { id: 'new_merit', label: '新しいメリット・訴求', type: 'textarea', placeholder: '例：時短勤務OK、ブランクありでも安心の研修制度' },
+        ]
+      },
+      { title: '冒頭文の書き換え', hint: 'キャッチコピーと仕事内容の冒頭を変更',
+        isDiff: true,
+        diffFields: ['catchCopy', 'jobDescription']
+      },
+      { title: '歓迎条件・ストーリーの調整', hint: '応募資格とアピールポイントを新ターゲット向けに',
+        isDiff: true,
+        diffFields: ['requirements', 'appealPoints']
+      },
+      { title: 'トーンの統一チェック', hint: '全体が新ターゲット向けになっているか',
+        isChecklist: true,
+        items: [
+          'キャッチコピーが新ターゲットに刺さるか',
+          '仕事内容の書き方が新ターゲットに合っているか',
+          '応募資格が新ターゲットにマッチしているか',
+          'アピールポイントが新ターゲットの悩みに応えているか',
+          '全体のトーン（文体・雰囲気）が統一されているか',
+          '元のターゲット向けの表現が残っていないか',
+        ]
+      }
+    ]
+  },
+  6: {
+    name: '訴求軸変更',
+    needsExisting: true,
+    steps: [
+      { title: '現在の訴求軸の把握', hint: '今、何を魅力として打ち出しているか',
+        questions: [
+          { id: 'current_appeal', label: '現在の訴求軸', type: 'textarea', placeholder: '例：高時給（時給1,500円〜）をメインに打ち出し' },
+          { id: 'current_result', label: '現在の効果', type: 'textarea', placeholder: '例：表示は多いが応募につながっていない' },
+        ]
+      },
+      { title: '新しい訴求軸の検討', hint: '時給・環境・成長・安定・人間関係など別の軸',
+        questions: [
+          { id: 'appeal_candidates', label: '候補となる訴求軸', type: 'textarea', placeholder: '例：①職場環境の良さ ②スキルアップ ③シフト柔軟性' },
+          { id: 'appeal_selected', label: '採用する新メイン訴求', type: 'input', placeholder: '例：シフト自由で働きやすい環境' },
+        ]
+      },
+      { title: 'メイン訴求の決定', hint: '1つに絞って強く打ち出す',
+        questions: [
+          { id: 'main_message', label: 'メインメッセージ', type: 'textarea', placeholder: '例：「週2日〜OK！自分のペースで働ける」' },
+          { id: 'sub_messages', label: 'サブメッセージ（2〜3個）', type: 'textarea', placeholder: '' },
+        ]
+      },
+      { title: 'タイトル・冒頭の変更', hint: 'キャッチコピーを新訴求軸に合わせる',
+        isDiff: true,
+        diffFields: ['catchCopy', 'jobDescription']
+      },
+      { title: 'メリットの並び順を再構成', hint: '新訴求軸を最初に持ってくる',
+        isDiff: true,
+        diffFields: ['appealPoints', 'benefits']
+      },
+      { title: '一貫性チェック', hint: 'ターゲットが変わっていないか・全体の統一感',
+        isChecklist: true,
+        items: [
+          'ターゲット自体は変わっていないか（変わっていたらターゲット変更パターンへ）',
+          '新訴求軸がタイトルに反映されているか',
+          '仕事内容の冒頭で新訴求軸に触れているか',
+          'アピールポイントの順番が訴求軸に合っているか',
+          '待遇・福利厚生の並び順が訴求軸と整合しているか',
+          '全体を通して一貫したメッセージになっているか',
+        ]
+      }
+    ]
+  }
+};
+
+// ===== State =====
+let state = {
+  pattern: null,
+  step: 0,
+  data: {},        // step question answers
+  formData: {},    // main form (Indeed fields)
+  existingText: '',
+  existingParsed: {},
+  checklistState: {},
+};
+
+// ===== Render =====
+function selectPattern(n) {
+  state.pattern = n;
+  state.step = 0;
+  state.data = {};
+  state.formData = {};
+  state.existingText = '';
+  state.existingParsed = {};
+  state.checklistState = {};
+  renderWorkflow();
+}
+
+function renderWorkflow() {
+  const p = PATTERNS[state.pattern];
+  document.getElementById('screen-select').classList.add('hidden');
+  const wf = document.getElementById('screen-workflow');
+  wf.classList.remove('hidden');
+
+  let html = '';
+
+  // Back button + title
+  html += `<div class="card" style="display:flex;align-items:center;gap:12px;">
+    <button class="btn btn-secondary" onclick="goBack()" style="padding:6px 14px;">← 戻る</button>
+    <div>
+      <h2 style="margin:0;">${p.name}</h2>
+      <span class="hint">ステップ ${state.step + 1} / ${p.steps.length}</span>
+    </div>
+  </div>`;
+
+  // Step bar
+  html += '<div class="step-bar">';
+  p.steps.forEach((s, i) => {
+    const cls = i < state.step ? 'done' : (i === state.step ? 'active' : '');
+    html += `<div class="step-indicator">
+      <div class="step-dot ${cls}" onclick="jumpToStep(${i})" style="cursor:pointer;" title="${s.title}">${i < state.step ? '✓' : i + 1}</div>
+    </div>`;
+    if (i < p.steps.length - 1) {
+      html += `<div class="step-line ${i < state.step ? 'done' : ''}"></div>`;
+    }
+  });
+  html += '</div>';
+
+  // Existing manuscript input (for patterns 2-6, shown before step content)
+  if (p.needsExisting && state.step === 0) {
+    html += renderExistingInput();
+  }
+
+  // Current step
+  const currentStep = p.steps[state.step];
+  html += `<div class="card">
+    <h2>${currentStep.title}</h2>
+    <p class="hint">${currentStep.hint}</p>`;
+
+  if (currentStep.isMainForm) {
+    html += renderMainForm();
+  } else if (currentStep.isChecklist) {
+    html += renderChecklist(currentStep);
+  } else if (currentStep.isDiff) {
+    html += renderDiffView(currentStep);
+  } else if (currentStep.questions) {
+    html += renderQuestions(currentStep);
+  }
+
+  html += '</div>';
+
+  // Navigation
+  html += '<div class="btn-row">';
+  if (state.step > 0) {
+    html += `<button class="btn btn-secondary" onclick="prevStep()">← 前へ</button>`;
+  }
+  if (state.step < p.steps.length - 1) {
+    html += `<button class="btn btn-primary" onclick="nextStep()">次へ →</button>`;
+  } else {
+    html += `<button class="btn btn-accent" onclick="showPreview()">プレビュー</button>`;
+  }
+  html += '</div>';
+
+  wf.innerHTML = html;
+}
+
+function renderExistingInput() {
+  return `<div class="existing-input">
+    <h3>既存原稿を貼り付けてください</h3>
+    <p style="font-size:13px;color:#92400e;margin-bottom:8px;">現在の原稿をそのまま貼り付けてください。フィールドに自動分配されます。</p>
+    <div class="form-group">
+      <textarea id="existingText" placeholder="既存の原稿をここに貼り付け..." style="min-height:200px;"
+        onchange="parseExisting(this.value)">${escapeHtml(state.existingText)}</textarea>
+    </div>
+    <button class="btn btn-secondary" onclick="parseExisting(document.getElementById('existingText').value)">原稿を読み込む</button>
+  </div>`;
+}
+
+function renderQuestions(step) {
+  let html = '';
+  step.questions.forEach(q => {
+    const val = state.data[q.id] || '';
+    html += `<div class="form-group">
+      <label>${q.label}</label>`;
+    if (q.type === 'textarea') {
+      html += `<textarea id="q_${q.id}" onchange="saveQuestion('${q.id}', this.value)"
+        placeholder="${q.placeholder || ''}">${escapeHtml(val)}</textarea>`;
+    } else if (q.type === 'select') {
+      html += `<select id="q_${q.id}" onchange="saveQuestion('${q.id}', this.value)">`;
+      q.options.forEach(o => {
+        html += `<option value="${o}" ${val === o ? 'selected' : ''}>${o || '-- 選択 --'}</option>`;
+      });
+      html += '</select>';
+    } else {
+      html += `<input type="text" id="q_${q.id}" value="${escapeHtml(val)}"
+        onchange="saveQuestion('${q.id}', this.value)" placeholder="${q.placeholder || ''}">`;
+    }
+    html += '</div>';
+  });
+  return html;
+}
+
+function renderMainForm() {
+  let html = '<div class="guide-box"><strong>Indeedの原稿フィールドに入力してください</strong>必須項目を中心に、前のステップで決めた内容を反映させましょう。</div>';
+
+  FIELDS.forEach(f => {
+    const val = state.formData[f.id] || state.existingParsed[f.id] || '';
+    html += `<div class="form-group">
+      <label>${f.label}${f.required ? '<span class="required">*必須</span>' : '<span class="optional">任意</span>'}</label>`;
+
+    if (f.type === 'textarea') {
+      html += `<textarea id="f_${f.id}" rows="${f.rows || 3}"
+        onchange="saveField('${f.id}', this.value)">${escapeHtml(val)}</textarea>`;
+    } else if (f.type === 'select') {
+      html += `<select id="f_${f.id}" onchange="saveField('${f.id}', this.value)">`;
+      html += `<option value="">-- 選択 --</option>`;
+      f.options.forEach(o => {
+        html += `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`;
+      });
+      html += '</select>';
+    } else {
+      html += `<input type="text" id="f_${f.id}" value="${escapeHtml(val)}"
+        onchange="saveField('${f.id}', this.value)">`;
+    }
+
+    if (f.tip) {
+      html += `<div class="field-tip">${f.tip}</div>`;
+    }
+    html += '</div>';
+  });
+
+  return html;
+}
+
+function renderChecklist(step) {
+  const key = `step_${state.step}`;
+  if (!state.checklistState[key]) {
+    state.checklistState[key] = new Array(step.items.length).fill(false);
+  }
+  const checks = state.checklistState[key];
+  const done = checks.filter(Boolean).length;
+  const pct = Math.round((done / step.items.length) * 100);
+
+  let html = `<div class="progress-bar"><div class="fill" style="width:${pct}%"></div></div>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">${done} / ${step.items.length} 完了</p>
+    <ul class="checklist">`;
+
+  step.items.forEach((item, i) => {
+    html += `<li class="${checks[i] ? 'checked' : ''}">
+      <input type="checkbox" ${checks[i] ? 'checked' : ''} onchange="toggleCheck(${i})">
+      <span>${item}</span>
+    </li>`;
+  });
+
+  html += '</ul>';
+  return html;
+}
+
+function renderDiffView(step) {
+  let html = '<div class="guide-box"><strong>変更前→変更後を対比しながら編集できます</strong></div>';
+
+  step.diffFields.forEach(fieldId => {
+    const field = FIELDS.find(f => f.id === fieldId);
+    if (!field) return;
+    const before = state.existingParsed[fieldId] || state.formData[fieldId] || '';
+    const after = state.formData[fieldId] || before;
+
+    html += `<p style="font-weight:600;margin-bottom:8px;">${field.label}</p>
+      <div class="diff-container">
+        <div class="diff-panel before">
+          <div class="diff-header">変更前</div>
+          <textarea readonly>${escapeHtml(before)}</textarea>
+        </div>
+        <div class="diff-panel after">
+          <div class="diff-header">変更後（編集可）</div>
+          <textarea onchange="saveField('${fieldId}', this.value)">${escapeHtml(after)}</textarea>
+        </div>
+      </div>`;
+  });
+
+  return html;
+}
+
+function showPreview() {
+  const wf = document.getElementById('screen-workflow');
+  const p = PATTERNS[state.pattern];
+
+  let html = `<div class="card" style="display:flex;align-items:center;gap:12px;">
+    <button class="btn btn-secondary" onclick="renderWorkflow()" style="padding:6px 14px;">← 編集に戻る</button>
+    <div>
+      <h2 style="margin:0;">プレビュー</h2>
+      <span class="hint">${p.name}</span>
+    </div>
+  </div>`;
+
+  html += '<div class="preview-section"><div class="preview-header"><span>Indeed原稿プレビュー</span>';
+  html += '<button class="btn" style="background:white;color:var(--primary);padding:6px 16px;font-size:13px;" onclick="copyAll()">全文コピー</button>';
+  html += '</div><div class="preview-body">';
+
+  FIELDS.forEach(f => {
+    const val = state.formData[f.id] || state.existingParsed[f.id] || '';
+    html += `<div class="preview-field">
+      <div class="label">${f.label}</div>
+      <div class="value ${val ? '' : 'empty'}">${val ? escapeHtml(val) : '未入力'}</div>
+    </div>`;
+  });
+
+  html += '</div></div>';
+
+  // Strategy summary
+  html += '<div class="card" style="margin-top:16px;"><h2>設計メモ</h2>';
+  const stepData = Object.entries(state.data);
+  if (stepData.length > 0) {
+    html += '<div style="font-size:13px;color:var(--text-light);">';
+    stepData.forEach(([key, val]) => {
+      if (val) {
+        html += `<p style="margin-bottom:4px;"><strong>${key}:</strong> ${escapeHtml(val)}</p>`;
+      }
+    });
+    html += '</div>';
+  } else {
+    html += '<p class="hint">ステップで入力されたメモはありません</p>';
+  }
+  html += '</div>';
+
+  // Export buttons
+  html += `<div class="btn-row">
+    <button class="btn btn-secondary" onclick="goBack()">最初に戻る</button>
+    <button class="btn btn-accent" onclick="copyAll()">全文コピー</button>
+  </div>`;
+
+  wf.innerHTML = html;
+}
+
+// ===== Actions =====
+function saveQuestion(id, val) {
+  state.data[id] = val;
+}
+
+function saveField(id, val) {
+  state.formData[id] = val;
+}
+
+function toggleCheck(i) {
+  const key = `step_${state.step}`;
+  state.checklistState[key][i] = !state.checklistState[key][i];
+  renderWorkflow();
+}
+
+function nextStep() {
+  const p = PATTERNS[state.pattern];
+  if (state.step < p.steps.length - 1) {
+    state.step++;
+    renderWorkflow();
+    window.scrollTo(0, 0);
+  }
+}
+
+function prevStep() {
+  if (state.step > 0) {
+    state.step--;
+    renderWorkflow();
+    window.scrollTo(0, 0);
+  }
+}
+
+function jumpToStep(i) {
+  state.step = i;
+  renderWorkflow();
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  state.pattern = null;
+  state.step = 0;
+  document.getElementById('screen-workflow').classList.add('hidden');
+  document.getElementById('screen-workflow').innerHTML = '';
+  document.getElementById('screen-select').classList.remove('hidden');
+}
+
+function parseExisting(text) {
+  state.existingText = text;
+  // Simple field detection from pasted text
+  const parsed = {};
+  const lines = text.split('\n');
+  let currentField = null;
+  let currentValue = [];
+
+  const fieldMap = {
+    '職種名': 'jobTitle',
+    '職種カテゴリ': 'jobCategory',
+    'キャッチコピー': 'catchCopy',
+    '求人キャッチコピー': 'catchCopy',
+    '会社名': 'companyName',
+    '勤務地': 'location',
+    '雇用形態': 'employmentType',
+    '給与': 'salary',
+    '勤務形態': 'workStyle',
+    '勤務時間': 'workHours',
+    '勤務時間・曜日': 'workHours',
+    '社会保険': 'insurance',
+    '試用期間': 'trialPeriod',
+    '仕事内容': 'jobDescription',
+    'アピールポイント': 'appealPoints',
+    '求める人材': 'requirements',
+    '休暇・休日': 'holidays',
+    '休暇': 'holidays',
+    '休日': 'holidays',
+    '勤務地の補足': 'locationNote',
+    'アクセス': 'access',
+    '給与の補足': 'salaryNote',
+    '待遇・福利厚生': 'benefits',
+    '待遇': 'benefits',
+    '福利厚生': 'benefits',
+    'その他': 'other',
+  };
+
+  function flushField() {
+    if (currentField && currentValue.length > 0) {
+      parsed[currentField] = currentValue.join('\n').trim();
+    }
+  }
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    // Check if line starts a new field
+    let matched = false;
+    for (const [key, fieldId] of Object.entries(fieldMap)) {
+      // Match patterns like "職種名：xxx" or "【職種名】xxx" or "■職種名" etc.
+      const patterns = [
+        new RegExp(`^[■●▪▶【]?\\s*${key}[】]?\\s*[:：]?\\s*(.*)$`),
+      ];
+      for (const pat of patterns) {
+        const m = trimmed.match(pat);
+        if (m) {
+          flushField();
+          currentField = fieldId;
+          currentValue = m[1] ? [m[1]] : [];
+          matched = true;
+          break;
+        }
+      }
+      if (matched) break;
+    }
+    if (!matched && currentField) {
+      currentValue.push(line);
+    }
+  });
+  flushField();
+
+  state.existingParsed = parsed;
+  state.formData = { ...parsed, ...state.formData };
+
+  // Show feedback
+  const count = Object.keys(parsed).length;
+  if (count > 0) {
+    showToast(`${count}件のフィールドを読み込みました`);
+  } else if (text.trim()) {
+    // If no fields detected, put everything in jobDescription
+    state.existingParsed.jobDescription = text;
+    state.formData.jobDescription = state.formData.jobDescription || text;
+    showToast('フィールドを自動検出できませんでした。仕事内容に全文を入れました');
+  }
+}
+
+function copyAll() {
+  let text = '';
+  FIELDS.forEach(f => {
+    const val = state.formData[f.id] || state.existingParsed[f.id] || '';
+    if (val) {
+      text += `【${f.label}】\n${val}\n\n`;
+    }
+  });
+  navigator.clipboard.writeText(text.trim()).then(() => {
+    showToast('コピーしました');
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+
+</body>
+</html>

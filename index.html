@@ -1673,85 +1673,224 @@ function goBack() {
 
 function parseExisting(text) {
   state.existingText = text;
-  // Simple field detection from pasted text
   const parsed = {};
   const lines = text.split('\n');
   let currentField = null;
   let currentValue = [];
 
-  const fieldMap = {
-    '職種名': 'jobTitle',
-    '職種カテゴリ': 'jobCategory',
-    'キャッチコピー': 'catchCopy',
-    '求人キャッチコピー': 'catchCopy',
-    '会社名': 'companyName',
-    '勤務地': 'location',
-    '雇用形態': 'employmentType',
-    '給与': 'salary',
-    '勤務形態': 'workStyle',
-    '勤務時間': 'workHours',
-    '勤務時間・曜日': 'workHours',
-    '社会保険': 'insurance',
-    '試用期間': 'trialPeriod',
-    '仕事内容': 'jobDescription',
-    'アピールポイント': 'appealPoints',
-    '求める人材': 'reqMust',
-    '必須条件': 'reqMust',
-    '歓迎条件': 'reqWelcome',
-    '休暇・休日': 'holidays',
-    '休暇': 'holidays',
-    '休日': 'holidays',
-    '勤務地の補足': 'locationNote',
-    'アクセス': 'access',
-    '給与の補足': 'salaryNote',
-    '待遇・福利厚生': 'benefits',
-    '待遇': 'benefits',
-    '福利厚生': 'benefits',
-    'その他': 'other',
-  };
+  // Comprehensive field mapping: all possible Indeed field name variations → internal field ID
+  // Longer/more specific keys must come first to avoid partial matches
+  const fieldMap = [
+    // Catch copy / Title
+    ['求人キャッチコピー', 'catchCopy'],
+    ['キャッチコピー', 'catchCopy'],
+    // Company
+    ['企業名', 'companyName'],
+    ['会社名', 'companyName'],
+    // Category
+    ['職種カテゴリー', 'jobCategory'],
+    ['職種カテゴリ', 'jobCategory'],
+    // Job title
+    ['職種名', 'jobTitle'],
+    // Location (specific first)
+    ['勤務地所在地', 'locationNote'],
+    ['勤務地の補足', 'locationNote'],
+    ['勤務地備考', 'locationNote'],
+    ['勤務地', 'location'],
+    // Employment type
+    ['雇用形態', 'employmentType'],
+    // Salary (specific first)
+    ['給与詳細', 'salary'],
+    ['給与の補足', 'salaryNote'],
+    ['給与・報酬', 'salary'],
+    ['給与', 'salary'],
+    // Work style
+    ['勤務形態', 'workStyle'],
+    // Work hours (specific first)
+    ['勤務時間詳細', 'workHours'],
+    ['勤務時間・曜日', 'workHours'],
+    ['勤務時間・シフト', 'workHours'],
+    ['勤務時間', 'workHours'],
+    // Insurance
+    ['社会保険', 'insurance'],
+    // Trial period
+    ['試用期間', 'trialPeriod'],
+    ['試用・研修期間', 'trialPeriod'],
+    // Job description
+    ['仕事内容', 'jobDescription'],
+    // Appeal
+    ['アピールポイント', 'appealPoints'],
+    // Requirements (all variations)
+    ['求めている人材', 'reqMust'],
+    ['求める人材', 'reqMust'],
+    ['必須条件', 'reqMust'],
+    ['歓迎条件', 'reqWelcome'],
+    ['応募資格', 'reqMust'],
+    // Holidays
+    ['休日休暇', 'holidays'],
+    ['休暇・休日', 'holidays'],
+    ['休暇休日', 'holidays'],
+    ['休暇', 'holidays'],
+    ['休日', 'holidays'],
+    // Access
+    ['交通・アクセス', 'access'],
+    ['交通アクセス', 'access'],
+    ['アクセス', 'access'],
+    // Benefits
+    ['待遇・福利厚生', 'benefits'],
+    ['福利厚生', 'benefits'],
+    ['待遇', 'benefits'],
+    // Other Indeed fields → map to 'other' or appropriate field
+    ['選考プロセス', 'other'],
+    ['職場環境', 'appealPoints'],
+    ['本社所在地', '_skip'],
+    ['業種', '_skip'],
+    ['代表者名', '_skip'],
+    ['代表電話番号', '_skip'],
+    ['その他', 'other'],
+  ];
+
+  // Lines to skip (Indeed UI noise)
+  const skipPatterns = [
+    /^slide\d+ of \d+$/,
+    /^\d+ \/ \d+$/,
+    /^返信率の高い企業/,
+    /^Indeed に求人を/,
+    /^- job post$/,
+    /^通勤の可否/,
+    /^職歴/,
+    /^言語/,
+  ];
+
+  // Tag lines (short badge-like items that appear before main content)
+  const tagKeywords = [
+    '交通費支給','車通勤OK','週2・3日からOK','学歴不問','週1日からOK',
+    '主婦・主夫歓迎','平日のみOK','学生歓迎','シフト自由','副業・WワークOK',
+    'シフト制','昇給あり','未経験歓迎','社員登用あり','即日勤務OK',
+    '寮完備','日払いOK','週払いOK','髪型自由','ネイルOK','服装自由',
+    '残業なし','土日祝休み','賞与あり','制服貸与',
+  ];
 
   function flushField() {
-    if (currentField && currentValue.length > 0) {
-      parsed[currentField] = currentValue.join('\n').trim();
+    if (currentField && currentField !== '_skip' && currentValue.length > 0) {
+      const val = currentValue.join('\n').trim();
+      if (val) {
+        // If field already has content, append
+        if (parsed[currentField]) {
+          parsed[currentField] += '\n' + val;
+        } else {
+          parsed[currentField] = val;
+        }
+      }
     }
   }
 
-  lines.forEach(line => {
-    const trimmed = line.trim();
-    // Check if line starts a new field
-    let matched = false;
-    for (const [key, fieldId] of Object.entries(fieldMap)) {
-      // Match patterns like "職種名：xxx" or "【職種名】xxx" or "■職種名" etc.
-      const patterns = [
-        new RegExp(`^[■●▪▶【]?\\s*${key}[】]?\\s*[:：]?\\s*(.*)$`),
-      ];
-      for (const pat of patterns) {
-        const m = trimmed.match(pat);
-        if (m) {
-          flushField();
-          currentField = fieldId;
-          currentValue = m[1] ? [m[1]] : [];
-          matched = true;
-          break;
+  function matchField(trimmed) {
+    for (const [key, fieldId] of fieldMap) {
+      // Match: "仕事内容", "■仕事内容", "【仕事内容】", "仕事内容：xxx", "仕事内容:", etc.
+      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pat = new RegExp(`^[■●▪▶★☆✅◆◇▼△▽※【〔＝=]?\\s*${escaped}[】〕]?\\s*[:：]?\\s*(.*)$`);
+      const m = trimmed.match(pat);
+      if (m) {
+        return { fieldId, rest: (m[1] || '').trim() };
+      }
+    }
+    return null;
+  }
+
+  // First pass: try to detect the Indeed "header" format
+  // Pattern: title line, company line, location line, salary line - employment type
+  let headerParsed = false;
+  for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    const line = lines[i].trim();
+    // Detect salary + employment type pattern like "日給 12,500円 ~ 15,000円 - アルバイト･パート"
+    // or "時給 1,200円 ~ 1,645円 - アルバイト･パート"
+    const salaryMatch = line.match(/^(時給|日給|月給|年収|年俸)\s*.+[-ー]\s*(正社員|契約社員|パート|アルバイト|アルバイト[･・]パート|派遣社員|業務委託|インターン)/);
+    if (salaryMatch) {
+      // Found salary line - work backwards for company and title
+      const salaryParts = line.split(/\s*[-ー]\s*/);
+      parsed['salary'] = salaryParts[0].trim();
+      parsed['employmentType'] = salaryParts.slice(1).join('').trim();
+
+      // Previous line is likely location
+      if (i >= 1 && !parsed['location']) {
+        const locLine = lines[i-1].trim();
+        if (locLine && !locLine.match(/^(時給|日給|月給)/)) {
+          parsed['location'] = locLine;
         }
       }
-      if (matched) break;
+      // Two lines back is likely company
+      if (i >= 2 && !parsed['companyName']) {
+        const compLine = lines[i-2].trim();
+        if (compLine && compLine.length < 100) {
+          parsed['companyName'] = compLine;
+        }
+      }
+      // Three+ lines back is likely the title/catch copy
+      if (i >= 3 && !parsed['catchCopy']) {
+        // Collect title lines (may be multi-line)
+        let titleLines = [];
+        for (let j = 0; j < i-2; j++) {
+          const tl = lines[j].trim();
+          if (tl) titleLines.push(tl);
+        }
+        if (titleLines.length > 0) {
+          parsed['catchCopy'] = titleLines.join(' ');
+        }
+      }
+      headerParsed = true;
+      break;
     }
-    if (!matched && currentField) {
+  }
+
+  // Second pass: parse structured fields
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (currentField) currentValue.push('');
+      return;
+    }
+
+    // Skip noise lines
+    if (skipPatterns.some(p => p.test(trimmed))) return;
+
+    // Skip tag lines (short badge labels)
+    if (tagKeywords.includes(trimmed)) return;
+
+    // Try to match a field header
+    const match = matchField(trimmed);
+    if (match) {
+      flushField();
+      currentField = match.fieldId;
+      currentValue = match.rest ? [match.rest] : [];
+      return;
+    }
+
+    // Continue collecting current field's content
+    if (currentField) {
       currentValue.push(line);
     }
   });
   flushField();
 
+  // Clean up: remove trailing empty lines from all values
+  for (const key in parsed) {
+    parsed[key] = parsed[key].replace(/\n{3,}/g, '\n\n').trim();
+  }
+
   state.existingParsed = parsed;
-  state.formData = { ...parsed, ...state.formData };
+  // Merge: existing parsed values fill in, but don't overwrite user edits
+  for (const key in parsed) {
+    if (!state.formData[key]) {
+      state.formData[key] = parsed[key];
+    }
+  }
 
   // Show feedback
   const count = Object.keys(parsed).length;
   if (count > 0) {
     showToast(`${count}件のフィールドを読み込みました`);
   } else if (text.trim()) {
-    // If no fields detected, put everything in jobDescription
     state.existingParsed.jobDescription = text;
     state.formData.jobDescription = state.formData.jobDescription || text;
     showToast('フィールドを自動検出できませんでした。仕事内容に全文を入れました');

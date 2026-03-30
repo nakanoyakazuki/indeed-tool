@@ -846,13 +846,11 @@ const PATTERNS = {
   2: {
     name: '見せ方変更',
     needsExisting: true,
+    existingQuestions: [
+      { id: 'new_jobtitle', label: '新しい職種名（案）', type: 'input', placeholder: '例：事務→営業事務、清掃→ルームメイク' },
+      { id: 'flow_problem', label: '変更の狙い（任意）', type: 'textarea', placeholder: '例：検索ボリュームが少ない職種名になっている' },
+    ],
     steps: [
-      { title: '変更方針', hint: '検索のされ方をどう変えるか',
-        questions: [
-          { id: 'new_jobtitle', label: '新しい職種名（案）', type: 'input', placeholder: '例：事務→営業事務、清掃→ルームメイク' },
-          { id: 'flow_problem', label: '変更の狙い（任意）', type: 'textarea', placeholder: '例：検索ボリュームが少ない職種名になっている' },
-        ]
-      },
       { title: '原稿の修正', hint: 'AIが職種名・見せ方に合わせて修正案を生成します',
         isDiff: true,
         aiDiff: true,
@@ -872,12 +870,10 @@ const PATTERNS = {
   3: {
     name: 'リライト',
     needsExisting: true,
+    existingQuestions: [
+      { id: 'issue_points', label: '気になる点・改善したい点（任意）', type: 'textarea', placeholder: '例：仕事内容が長すぎる、箇条書きにしたい、堅い印象を柔らかく' },
+    ],
     steps: [
-      { title: '改善方針', hint: 'どう改善するか（任意：空欄でもAIが自動判断します）',
-        questions: [
-          { id: 'issue_points', label: '気になる点・改善したい点（任意）', type: 'textarea', placeholder: '例：仕事内容が長すぎる、箇条書きにしたい、堅い印象を柔らかく' },
-        ]
-      },
       { title: '原稿の修正', hint: 'AIが読みやすさ・伝わりやすさを改善した案を生成します',
         isDiff: true,
         aiDiff: true,
@@ -898,12 +894,10 @@ const PATTERNS = {
   4: {
     name: '条件変更',
     needsExisting: true,
+    existingQuestions: [
+      { id: 'change_items', label: '変更する項目と内容', type: 'textarea', placeholder: '例：時給1,100円→1,250円に変更' },
+    ],
     steps: [
-      { title: '変更内容', hint: '何をどう変更するか',
-        questions: [
-          { id: 'change_items', label: '変更する項目と内容', type: 'textarea', placeholder: '例：時給1,100円→1,250円に変更' },
-        ]
-      },
       { title: '原稿の修正', hint: 'AIが該当箇所を全て修正した案を生成します',
         isDiff: true,
         aiDiff: true,
@@ -924,12 +918,10 @@ const PATTERNS = {
   5: {
     name: 'ターゲット変更',
     needsExisting: true,
+    existingQuestions: [
+      { id: 'new_target', label: '新しいターゲット像', type: 'textarea', placeholder: '例：30〜40代の未経験者・主婦(夫)層。家庭と両立したい、ブランクがあって不安な方' },
+    ],
     steps: [
-      { title: '新しいターゲット', hint: '誰に届けたいか',
-        questions: [
-          { id: 'new_target', label: '新しいターゲット像', type: 'textarea', placeholder: '例：30〜40代の未経験者・主婦(夫)層。家庭と両立したい、ブランクがあって不安な方' },
-        ]
-      },
       { title: '原稿の修正', hint: 'AIが新ターゲットに合わせて原稿を書き換えます',
         isDiff: true,
         aiDiff: true,
@@ -950,12 +942,10 @@ const PATTERNS = {
   6: {
     name: '訴求軸変更',
     needsExisting: true,
+    existingQuestions: [
+      { id: 'appeal_selected', label: '新しい訴求軸', type: 'textarea', placeholder: '例：シフト自由で働きやすい環境、充実した研修制度で未経験でも安心' },
+    ],
     steps: [
-      { title: '新しい訴求軸', hint: '何を魅力として打ち出すか',
-        questions: [
-          { id: 'appeal_selected', label: '新しい訴求軸', type: 'textarea', placeholder: '例：シフト自由で働きやすい環境、充実した研修制度で未経験でも安心' },
-        ]
-      },
       { title: '原稿の修正', hint: 'AIが新しい訴求軸に合わせて原稿を書き換えます',
         isDiff: true,
         aiDiff: true,
@@ -1114,15 +1104,37 @@ function renderWorkflow() {
 }
 
 function renderExistingInput() {
-  return `<div class="existing-input">
+  const p = PATTERNS[state.pattern];
+  let html = `<div class="existing-input">
     <h3>既存原稿を貼り付けてください</h3>
     <p style="font-size:13px;color:#92400e;margin-bottom:8px;">現在の原稿をそのまま貼り付けてください。フィールドに自動分配されます。</p>
     <div class="form-group">
       <textarea id="existingText" placeholder="既存の原稿をここに貼り付け..." style="min-height:200px;"
         onchange="parseExisting(this.value)">${escapeHtml(state.existingText)}</textarea>
     </div>
-    <button class="btn btn-secondary" onclick="parseExisting(document.getElementById('existingText').value)">原稿を読み込む</button>
-  </div>`;
+    <button class="btn btn-secondary" onclick="parseExisting(document.getElementById('existingText').value)">原稿を読み込む</button>`;
+
+  // Pattern-specific questions inline
+  if (p.existingQuestions) {
+    html += '<div style="margin-top:16px;padding-top:16px;border-top:1px solid #f0c040;">';
+    p.existingQuestions.forEach(q => {
+      const val = state.data[q.id] || '';
+      html += `<div class="form-group">
+        <label style="color:#92400e;">${q.label}</label>`;
+      if (q.type === 'textarea') {
+        html += `<textarea id="q_${q.id}" onchange="saveQuestion('${q.id}', this.value)"
+          placeholder="${q.placeholder || ''}">${escapeHtml(val)}</textarea>`;
+      } else {
+        html += `<input type="text" id="q_${q.id}" value="${escapeHtml(val)}"
+          onchange="saveQuestion('${q.id}', this.value)" placeholder="${q.placeholder || ''}">`;
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  html += '</div>';
+  return html;
 }
 
 function renderQuestions(step) {

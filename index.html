@@ -818,6 +818,9 @@ const PATTERNS = {
           'スマホで見た時に読みやすいか（1文が長すぎないか）',
           '誤字脱字がないか',
         ]
+      },
+      { title: 'クライアント報告', hint: '修正意図をクライアントに伝える報告文を作成',
+        isClientReport: true
       }
     ]
   },
@@ -1022,6 +1025,8 @@ function renderWorkflow() {
     html += renderMainForm();
   } else if (currentStep.isChecklist) {
     html += renderChecklist(currentStep);
+  } else if (currentStep.isClientReport) {
+    html += renderClientReport();
   } else if (currentStep.isDiff) {
     html += renderDiffView(currentStep);
   } else if (currentStep.questions) {
@@ -1141,6 +1146,75 @@ function renderChecklist(step) {
 
   html += '</ul>';
   return html;
+}
+
+function renderClientReport() {
+  const reportVal = state.data['client_report'] || '';
+
+  // Auto-generate template from step data if empty
+  let template = '';
+  if (!reportVal) {
+    const companyName = state.formData['companyName'] || state.existingParsed['companyName'] || '○○';
+    const jobTitle = state.formData['jobTitle'] || state.existingParsed['jobTitle'] || '○○';
+    const issues = state.data['issue_points'] || '';
+    const impression = state.data['issue_impression'] || '';
+    const duplicate = state.data['duplicate'] || '';
+    const unnecessary = state.data['unnecessary'] || '';
+    const missing = state.data['missing'] || '';
+    const structure = state.data['structure_plan'] || '';
+
+    template = `${companyName}様
+
+お世話になっております。
+「${jobTitle}」の原稿リライトが完了しましたのでご報告いたします。
+
+■ 今回の修正意図
+${issues ? '・課題：' + issues.split('\n')[0] : '・課題：'}
+${impression ? '・印象：' + impression.split('\n')[0] : '・印象：'}
+
+■ 主な変更点
+${duplicate ? '・重複していた情報を整理しました\n  → ' + duplicate.split('\n')[0] : '・重複情報の整理'}
+${unnecessary ? '・不要な情報を削除しました\n  → ' + unnecessary.split('\n')[0] : '・不要な情報の削除'}
+${missing ? '・不足していた情報を追加しました\n  → ' + missing.split('\n')[0] : '・不足情報の追加'}
+${structure ? '・構成を見直しました\n  → ' + structure.split('\n')[0] : '・構成の見直し（結論→理由→詳細の流れに）'}
+・箇条書き化・視認性の向上（スマホでの読みやすさ改善）
+
+■ 変更していない点
+・給与、勤務時間等の条件面は変更しておりません
+・ターゲット層、訴求軸はそのままです
+
+■ 期待される効果
+・仕事内容が具体的になり、求職者が働くイメージを持ちやすくなります
+・スマホでの閲覧時に読みやすくなり、離脱率の改善が見込めます
+・情報が整理されたことで、応募率の向上が期待できます
+
+ご確認のほどよろしくお願いいたします。
+気になる点がございましたらお気軽にお申し付けください。`;
+  }
+
+  let html = '<div class="guide-box"><strong>修正意図をクライアントに報告するテンプレートです</strong>前のステップで入力した内容が自動で反映されます。自由に編集してください。</div>';
+
+  html += `<div class="form-group">
+    <label>報告文<span class="template-btn" onclick="copyReport()">コピー</span></label>
+    <textarea id="client_report" rows="20" style="min-height:350px;font-size:13px;line-height:1.8;"
+      onchange="saveQuestion('client_report', this.value)">${escapeHtml(reportVal || template)}</textarea>
+  </div>`;
+
+  // Auto-save the generated template
+  if (!reportVal && template) {
+    setTimeout(() => { saveQuestion('client_report', template); }, 0);
+  }
+
+  return html;
+}
+
+function copyReport() {
+  const el = document.getElementById('client_report');
+  if (el) {
+    navigator.clipboard.writeText(el.value).then(() => {
+      showToast('報告文をコピーしました');
+    });
+  }
 }
 
 function renderDiffView(step) {

@@ -596,13 +596,124 @@
     display: block;
     margin-bottom: 2px;
   }
+
+  /* AI Generate */
+  .ai-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #eef3fb 0%, #f0fdf4 100%);
+    border: 1.5px solid var(--primary);
+    border-radius: 10px;
+  }
+
+  .ai-bar .ai-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .ai-bar .ai-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .ai-bar .ai-text strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .btn-ai {
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+
+  .btn-ai:hover { opacity: 0.9; }
+  .btn-ai:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .ai-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .ai-loading .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .api-key-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .api-key-bar input {
+    flex: 1;
+    max-width: 320px;
+    padding: 6px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: monospace;
+  }
+
+  .api-key-bar input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .api-key-bar .status {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .api-key-bar .status.ok { color: var(--success); }
+  .api-key-bar .status.ng { color: #ef4444; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>Indeed原稿作成ツール</h1>
-  <span class="badge">v1.0</span>
+  <span class="badge">v2.0</span>
+  <button class="btn" style="margin-left:auto;background:rgba(255,255,255,0.15);color:white;padding:4px 12px;font-size:12px;" onclick="toggleApiKey()">API設定</button>
+</div>
+<div class="api-key-bar hidden" id="apiKeyBar">
+  <label style="font-weight:600;white-space:nowrap;">Claude API Key:</label>
+  <input type="password" id="apiKeyInput" placeholder="sk-ant-..." value="" onchange="saveApiKey(this.value)">
+  <span class="status" id="apiKeyStatus"></span>
+  <span style="color:var(--text-light);font-size:11px;">※ブラウザに保存されます（サーバーには送信されません）</span>
 </div>
 
 <div class="container" id="app">
@@ -1099,7 +1210,39 @@ function renderQuestions(step) {
 }
 
 function renderMainForm() {
-  let html = '<div class="guide-box"><strong>Indeedの原稿フィールドに入力してください</strong>必須項目を中心に、前のステップで決めた内容を反映させましょう。</div>';
+  let html = '';
+
+  // AI generate bar
+  const hasKey = !!getApiKey();
+  if (state.pattern === 1) {
+    html += `<div class="ai-bar">
+      <div class="ai-icon">AI</div>
+      <div class="ai-text">
+        <strong>AIで原稿を自動生成</strong>
+        前のステップで入力した採用背景・ターゲット・訴求軸をもとに、原稿を自動生成します。
+      </div>
+      <div id="ai-btn-area">
+        ${hasKey
+          ? '<button class="btn-ai" onclick="generateWithAI()">自動生成</button>'
+          : '<button class="btn-ai" disabled title="API設定からキーを入力してください">API未設定</button>'}
+      </div>
+    </div>`;
+  } else if (state.pattern === 3) {
+    html += `<div class="ai-bar">
+      <div class="ai-icon">AI</div>
+      <div class="ai-text">
+        <strong>AIでリライト</strong>
+        既存原稿を、前のステップの分析結果をもとに自動リライトします。
+      </div>
+      <div id="ai-btn-area">
+        ${hasKey
+          ? '<button class="btn-ai" onclick="generateWithAI()">自動リライト</button>'
+          : '<button class="btn-ai" disabled title="API設定からキーを入力してください">API未設定</button>'}
+      </div>
+    </div>`;
+  }
+
+  html += '<div class="guide-box"><strong>Indeedの原稿フィールドに入力してください</strong>必須項目を中心に、前のステップで決めた内容を反映させましょう。</div>';
   html += '<div class="mobile-warning"><strong>スマホ表示を意識しましょう</strong>Indeedの検索・応募の約70%はスマホ経由です。長い文章は箇条書きにし、1文を短くすると効果的です。</div>';
 
   FIELDS.forEach(f => {
@@ -1640,6 +1783,198 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+// ===== API Key =====
+function toggleApiKey() {
+  const bar = document.getElementById('apiKeyBar');
+  bar.classList.toggle('hidden');
+  const input = document.getElementById('apiKeyInput');
+  const saved = getApiKey();
+  if (saved) {
+    input.value = saved;
+    updateApiKeyStatus(true);
+  }
+}
+
+function getApiKey() {
+  return localStorage.getItem('indeed_tool_api_key') || '';
+}
+
+function saveApiKey(val) {
+  const key = val.trim();
+  if (key) {
+    localStorage.setItem('indeed_tool_api_key', key);
+    updateApiKeyStatus(true);
+    showToast('APIキーを保存しました');
+  } else {
+    localStorage.removeItem('indeed_tool_api_key');
+    updateApiKeyStatus(false);
+  }
+}
+
+function updateApiKeyStatus(ok) {
+  const el = document.getElementById('apiKeyStatus');
+  if (ok) {
+    el.textContent = '設定済み';
+    el.className = 'status ok';
+  } else {
+    el.textContent = '未設定';
+    el.className = 'status ng';
+  }
+}
+
+// ===== AI Generation =====
+const FIELD_LABELS = {};
+FIELDS.forEach(f => { FIELD_LABELS[f.id] = f.label; });
+
+function buildPrompt() {
+  const d = state.data;
+  const p = state.pattern;
+
+  const fieldList = FIELDS.map(f => `- ${f.label}（${f.id}）${f.required ? '【必須】' : ''}`).join('\n');
+
+  if (p === 1) {
+    // 新規作成
+    return `あなたはIndeed求人原稿のプロライターです。以下の情報をもとに、Indeedに掲載する求人原稿を作成してください。
+
+## 入力情報
+- 採用理由: ${d['bg_reason'] || '未入力'}
+- 緊急度: ${d['bg_urgency'] || '未入力'}
+- 採用予定人数: ${d['bg_count'] || '未入力'}
+- ターゲット像: ${d['tgt_persona'] || '未入力'}
+- ターゲットの悩み・ニーズ: ${d['tgt_concerns'] || '未入力'}
+- メイン訴求: ${d['appeal_main'] || '未入力'}
+- サブ訴求: ${d['appeal_sub'] || '未入力'}
+- 想定検索キーワード: ${d['search_keywords'] || '未入力'}
+- 職種名の候補: ${d['search_jobtitle'] || '未入力'}
+
+## 出力フィールド（JSONで出力）
+${fieldList}
+
+## ルール
+- 職種名は検索されやすい具体的な名前にする（27〜35文字以内が理想）
+- キャッチコピーは具体的な数字や条件を入れて目を引く内容にする
+- 仕事内容は「誰に・何を・どのくらい・どうする」を具体的に書き、1日のスケジュール例も含める
+- 箇条書きを活用してスマホでも読みやすくする
+- 求める人材は「必須条件」(reqMust)と「歓迎条件」(reqWelcome)に分ける。必須条件は絞りすぎない
+- ターゲットの悩み・ニーズに応える訴求を盛り込む
+- 自然な文体で、堅すぎない表現にする
+
+各フィールドの値をJSON形式で出力してください。キーはフィールドのid（括弧内の英語名）を使用してください。
+JSONのみを出力し、他の文章は含めないでください。`;
+
+  } else if (p === 3) {
+    // リライト
+    const existing = {};
+    FIELDS.forEach(f => {
+      const val = state.formData[f.id] || state.existingParsed[f.id] || '';
+      if (val) existing[f.label] = val;
+    });
+
+    return `あなたはIndeed求人原稿のプロライターです。以下の既存原稿を、分析結果に基づいてリライトしてください。
+
+## 既存原稿
+${Object.entries(existing).map(([k, v]) => `【${k}】\n${v}`).join('\n\n')}
+
+## 分析結果
+- 課題のある箇所: ${d['issue_points'] || '未入力'}
+- 全体の印象: ${d['issue_impression'] || '未入力'}
+- 重複している情報: ${d['duplicate'] || 'なし'}
+- 不要な情報: ${d['unnecessary'] || 'なし'}
+- 不足している情報: ${d['missing'] || 'なし'}
+- 新しい構成案: ${d['structure_plan'] || '未入力'}
+
+## 出力フィールド（JSONで出力）
+${fieldList}
+
+## ルール
+- 条件（給与・勤務時間等）は変更しない
+- ターゲットや訴求軸は変えない
+- 重複・無駄を削除し、不足情報を追加する
+- 結論→理由→詳細の流れで構成する
+- 箇条書きを活用してスマホでも読みやすくする
+- 仕事内容には1日のスケジュール例を含める
+- 求める人材は「必須条件」(reqMust)と「歓迎条件」(reqWelcome)に分ける
+- わかりやすく具体的な表現にする
+- 意味を変えない範囲で伝わりやすくする
+
+各フィールドの値をJSON形式で出力してください。キーはフィールドのid（英語名）を使用してください。
+JSONのみを出力し、他の文章は含めないでください。`;
+  }
+  return '';
+}
+
+async function generateWithAI() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showToast('API設定からキーを入力してください');
+    return;
+  }
+
+  const prompt = buildPrompt();
+  if (!prompt) return;
+
+  // Show loading
+  const btnArea = document.getElementById('ai-btn-area');
+  btnArea.innerHTML = '<div class="ai-loading"><div class="spinner"></div>生成中...</div>';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API Error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content[0].text;
+
+    // Parse JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AIの応答からJSONを抽出できませんでした');
+
+    const generated = JSON.parse(jsonMatch[0]);
+
+    // Fill form fields
+    FIELDS.forEach(f => {
+      if (generated[f.id]) {
+        state.formData[f.id] = generated[f.id];
+      }
+    });
+
+    showToast('原稿を生成しました！内容を確認・編集してください');
+    renderWorkflow();
+
+  } catch (e) {
+    console.error(e);
+    showToast('エラー: ' + e.message);
+    btnArea.innerHTML = state.pattern === 1
+      ? '<button class="btn-ai" onclick="generateWithAI()">再試行</button>'
+      : '<button class="btn-ai" onclick="generateWithAI()">再試行</button>';
+  }
+}
+
+// Init API key status on load
+(function() {
+  const saved = getApiKey();
+  if (saved) {
+    const input = document.getElementById('apiKeyInput');
+    if (input) input.value = saved;
+  }
+})();
 </script>
 
 </body>

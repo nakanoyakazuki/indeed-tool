@@ -799,39 +799,15 @@ const PATTERNS = {
   1: {
     name: '新規作成',
     steps: [
-      { title: '採用背景の確認', hint: 'なぜ採用するのか？増員・欠員・新規事業など',
-        questions: [
-          { id: 'bg_reason', label: '採用理由', type: 'textarea', placeholder: '例：事業拡大に伴う増員のため' },
-          { id: 'bg_urgency', label: '緊急度', type: 'select', options: ['','急募','通常','長期募集'] },
-          { id: 'bg_count', label: '採用予定人数', type: 'input', placeholder: '例：2名' },
-        ]
+      { title: '基本情報の入力', hint: 'わかっている情報を入力してください',
+        isBasicInfo: true
       },
-      { title: 'ターゲット設定', hint: '誰を採るか？年齢・経験・志向性を明確にする',
-        questions: [
-          { id: 'tgt_persona', label: 'ターゲット像', type: 'textarea', placeholder: '例：20〜30代、未経験OK、安定志向の方' },
-          { id: 'tgt_concerns', label: 'ターゲットの悩み・ニーズ', type: 'textarea', placeholder: '例：残業が少ない仕事を探している、手に職をつけたい' },
-        ]
-      },
-      { title: '訴求軸の決定', hint: '何を魅力にするか？給与・環境・成長・安定など',
-        questions: [
-          { id: 'appeal_main', label: 'メイン訴求', type: 'input', placeholder: '例：未経験でも月給25万円〜' },
-          { id: 'appeal_sub', label: 'サブ訴求（2〜3個）', type: 'textarea', placeholder: '例：残業月10時間以下、充実した研修制度' },
-        ]
-      },
-      { title: '職種・見せ方設計', hint: 'どう検索されるか？職種名とカテゴリーを決める',
-        questions: [
-          { id: 'search_keywords', label: '想定検索キーワード', type: 'textarea', placeholder: '例：事務 未経験、データ入力 正社員' },
-          { id: 'search_jobtitle', label: '職種名の候補', type: 'input', placeholder: '例：データ入力スタッフ / 一般事務' },
-        ]
-      },
-      { title: '原稿作成', hint: 'タイトル → 本文 → 条件の順で入力',
+      { title: '原稿作成', hint: 'AIが基本情報＋自由入力をもとに原稿を生成します',
         isMainForm: true
       },
       { title: '最終チェック', hint: 'ズレがないか確認',
         isChecklist: true,
         items: [
-          '採用背景とターゲットに一貫性があるか',
-          '訴求軸がタイトル・冒頭に反映されているか',
           '職種名が検索されやすいか',
           '仕事内容が具体的に書かれているか',
           '給与・勤務時間に矛盾がないか',
@@ -1058,7 +1034,9 @@ function renderWorkflow() {
     <h2>${currentStep.title}</h2>
     <p class="hint">${currentStep.hint}</p>`;
 
-  if (currentStep.isMainForm) {
+  if (currentStep.isBasicInfo) {
+    html += renderBasicInfo();
+  } else if (currentStep.isMainForm) {
     html += renderMainForm();
   } else if (currentStep.isChecklist) {
     html += renderChecklist(currentStep);
@@ -1158,6 +1136,63 @@ function renderQuestions(step) {
     }
     html += '</div>';
   });
+  return html;
+}
+
+function renderBasicInfo() {
+  const basicFields = [
+    { id: 'companyName', label: '会社名', type: 'input', required: true },
+    { id: 'jobCategory', label: '職種カテゴリー', type: 'select', required: true,
+      options: ['事務・オフィスワーク','営業','販売・接客','飲食・フード','軽作業・物流','製造・工場','IT・エンジニア','医療・介護・福祉','教育','建設・土木','ドライバー・配送','清掃・メンテナンス','美容・理容','その他'] },
+    { id: 'location', label: '勤務地', type: 'input', required: true, placeholder: '例：東京都新宿区○○ 1-2-3' },
+    { id: 'employmentType', label: '雇用形態', type: 'select', required: true,
+      options: ['正社員','契約社員','パート・アルバイト','派遣社員','業務委託','インターン','その他'] },
+    { id: 'salary', label: '給与', type: 'input', required: true, placeholder: '例：月給25万円〜35万円、時給1,200円〜' },
+    { id: 'workHours', label: '勤務時間・曜日', type: 'textarea', rows: 2, required: true, placeholder: '例：9:00〜18:00（月〜金）' },
+    { id: 'workStyle', label: '勤務形態', type: 'select',
+      options: ['','オフィス勤務','リモートワーク','ハイブリッド','現場勤務'] },
+    { id: 'holidays', label: '休暇・休日', type: 'textarea', rows: 2, placeholder: '例：完全週休2日制（土日祝）' },
+    { id: 'insurance', label: '社会保険', type: 'input', placeholder: '例：社会保険完備' },
+    { id: 'trialPeriod', label: '試用期間', type: 'input', placeholder: '例：3ヶ月（条件変更なし）' },
+    { id: 'access', label: 'アクセス', type: 'input', placeholder: '例：○○駅から徒歩5分' },
+    { id: 'benefits', label: '待遇・福利厚生', type: 'textarea', rows: 2, placeholder: '例：交通費支給、社員割引、研修制度' },
+  ];
+
+  let html = '<div class="guide-box"><strong>まずは確定している情報を入力してください</strong>会社名・勤務地・給与など、決まっている条件を先に入れます。</div>';
+
+  basicFields.forEach(f => {
+    const val = state.formData[f.id] || '';
+    html += `<div class="form-group">
+      <label>${f.label}${f.required ? '<span class="required">*</span>' : '<span class="optional">任意</span>'}</label>`;
+
+    if (f.type === 'textarea') {
+      html += `<textarea id="f_${f.id}" rows="${f.rows || 2}"
+        onchange="saveField('${f.id}', this.value)" placeholder="${f.placeholder || ''}">${escapeHtml(val)}</textarea>`;
+    } else if (f.type === 'select') {
+      html += `<select id="f_${f.id}" onchange="saveField('${f.id}', this.value)">`;
+      html += `<option value="">-- 選択 --</option>`;
+      f.options.forEach(o => {
+        html += `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`;
+      });
+      html += '</select>';
+    } else {
+      html += `<input type="text" id="f_${f.id}" value="${escapeHtml(val)}"
+        onchange="saveField('${f.id}', this.value)" placeholder="${f.placeholder || ''}">`;
+    }
+    html += '</div>';
+  });
+
+  // Free-form input for qualitative info
+  html += `<div style="margin-top:20px;padding-top:16px;border-top:2px solid var(--primary);">
+    <div class="guide-box"><strong>自由入力</strong>ターゲット、訴求ポイント、採用背景など、原稿に反映したいことを自由に書いてください。AIがこの内容をもとに原稿を生成します。</div>
+    <div class="form-group">
+      <label>原稿に反映したいこと<span class="optional">任意</span></label>
+      <textarea id="q_free_input" rows="6"
+        onchange="saveQuestion('free_input', this.value)"
+        placeholder="例：&#10;・20〜30代の未経験者がターゲット&#10;・残業少なめ、研修充実をアピールしたい&#10;・カジュアルなトーンで&#10;・1日の流れを入れてほしい&#10;・急募">${escapeHtml(state.data['free_input'] || '')}</textarea>
+    </div>
+  </div>`;
+
   return html;
 }
 
@@ -1980,32 +2015,38 @@ function buildPrompt() {
 
   if (p === 1) {
     // 新規作成
-    return `あなたはIndeed求人原稿のプロライターです。以下の情報をもとに、Indeedに掲載する求人原稿を作成してください。
+    const basicInfo = {};
+    FIELDS.forEach(f => {
+      const val = state.formData[f.id] || '';
+      if (val) basicInfo[f.label] = val;
+    });
+    const basicText = Object.entries(basicInfo).map(([k, v]) => `- ${k}: ${v}`).join('\n');
+    const freeInput = d['free_input'] || '';
 
-## 入力情報
-- 採用理由: ${d['bg_reason'] || '未入力'}
-- 緊急度: ${d['bg_urgency'] || '未入力'}
-- 採用予定人数: ${d['bg_count'] || '未入力'}
-- ターゲット像: ${d['tgt_persona'] || '未入力'}
-- ターゲットの悩み・ニーズ: ${d['tgt_concerns'] || '未入力'}
-- メイン訴求: ${d['appeal_main'] || '未入力'}
-- サブ訴求: ${d['appeal_sub'] || '未入力'}
-- 想定検索キーワード: ${d['search_keywords'] || '未入力'}
-- 職種名の候補: ${d['search_jobtitle'] || '未入力'}
+    return `あなたはIndeed求人原稿のプロライターです。以下の基本情報と自由入力をもとに、Indeedに掲載する求人原稿を作成してください。
+
+## 基本情報（確定済み）
+${basicText || '（未入力）'}
+
+## 自由入力（ターゲット・訴求・トーンなど）
+${freeInput || '（未入力）'}
 
 ## 出力フィールド（JSONで出力）
 ${fieldList}
 
 ## ルール
+- 基本情報で入力済みの項目（会社名・勤務地・給与・勤務時間等）はそのまま使うこと
+- 基本情報に含まれない項目（職種名・キャッチコピー・仕事内容など）は自由入力の内容をもとに作成すること
 - 職種名は検索されやすい具体的な名前にする（27〜35文字以内が理想）
 - キャッチコピーは具体的な数字や条件を入れて目を引く内容にする
 - 仕事内容は「誰に・何を・どのくらい・どうする」を具体的に書き、1日のスケジュール例も含める
 - 箇条書きを活用してスマホでも読みやすくする
 - 求める人材は「必須条件」(reqMust)と「歓迎条件」(reqWelcome)に分ける。必須条件は絞りすぎない
-- ターゲットの悩み・ニーズに応える訴求を盛り込む
+- 自由入力にターゲットやトーンの指定があれば最優先で反映する
 - 自然な文体で、堅すぎない表現にする
 
 各フィールドの値をJSON形式で出力してください。キーはフィールドのid（括弧内の英語名）を使用してください。
+基本情報で入力済みの値もそのままJSONに含めてください。
 JSONのみを出力し、他の文章は含めないでください。`;
 
   } else if (p === 3) {

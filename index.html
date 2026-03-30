@@ -867,9 +867,6 @@ const PATTERNS = {
           'スマホで見た時に読みやすいか',
         ]
       },
-      { title: 'クライアント報告', hint: '変更意図をクライアントに伝える報告文を作成',
-        isClientReport: true
-      }
     ]
   },
   3: {
@@ -896,9 +893,6 @@ const PATTERNS = {
           '誤字脱字がないか',
         ]
       },
-      { title: 'クライアント報告', hint: '修正意図をクライアントに伝える報告文を作成',
-        isClientReport: true
-      }
     ]
   },
   4: {
@@ -925,9 +919,6 @@ const PATTERNS = {
           '誤字脱字がないか',
         ]
       },
-      { title: 'クライアント報告', hint: '変更内容をクライアントに伝える報告文を作成',
-        isClientReport: true
-      }
     ]
   },
   5: {
@@ -953,9 +944,6 @@ const PATTERNS = {
           '全体のトーンが統一されているか',
           '元のターゲット向けの表現が残っていないか',
         ]
-      },
-      { title: 'クライアント報告', hint: '変更意図をクライアントに伝える報告文を作成',
-        isClientReport: true
       }
     ]
   },
@@ -982,9 +970,6 @@ const PATTERNS = {
           'アピールポイントの順番が訴求軸に合っているか',
           '全体を通して一貫したメッセージになっているか',
         ]
-      },
-      { title: 'クライアント報告', hint: '変更意図をクライアントに伝える報告文を作成',
-        isClientReport: true
       }
     ]
   }
@@ -1058,8 +1043,6 @@ function renderWorkflow() {
     html += renderMainForm();
   } else if (currentStep.isChecklist) {
     html += renderChecklist(currentStep);
-  } else if (currentStep.isClientReport) {
-    html += renderClientReport();
   } else if (currentStep.isDiff) {
     html += renderDiffView(currentStep);
   } else if (currentStep.questions) {
@@ -1073,6 +1056,10 @@ function renderWorkflow() {
   if (state.step > 0) {
     html += `<button class="btn btn-secondary" onclick="prevStep()">← 前へ</button>`;
   }
+  // Client report button (patterns 2-6 only)
+  if (p.needsExisting) {
+    html += `<button class="btn btn-secondary" onclick="toggleClientReport()" style="margin-left:auto;">クライアント報告</button>`;
+  }
   if (state.step < p.steps.length - 1) {
     html += `<button class="btn btn-primary" onclick="nextStep()">次へ →</button>`;
   } else {
@@ -1080,7 +1067,33 @@ function renderWorkflow() {
   }
   html += '</div>';
 
+  // Client report panel (hidden by default)
+  html += `<div id="client-report-panel" class="hidden" style="margin-top:16px;">
+    <div class="card" style="border:2px solid var(--primary);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">クライアント報告</h2>
+        <button class="btn btn-secondary" onclick="toggleClientReport()" style="padding:4px 12px;font-size:12px;">閉じる</button>
+      </div>
+      <p class="hint">修正意図をクライアントに伝える報告文です。自由に編集できます。</p>
+      <div class="form-group">
+        <label>報告文<span class="template-btn" onclick="copyReport()">コピー</span></label>
+        <textarea id="client_report" rows="18" style="min-height:300px;font-size:13px;line-height:1.8;"
+          onchange="saveQuestion('client_report', this.value)"></textarea>
+      </div>
+    </div>
+  </div>`;
+
   wf.innerHTML = html;
+
+  // Fill report textarea after DOM render
+  const reportEl = document.getElementById('client_report');
+  if (reportEl) {
+    const val = state.data['client_report'] || generateReportTemplate();
+    reportEl.value = val;
+    if (!state.data['client_report'] && val) {
+      saveQuestion('client_report', val);
+    }
+  }
 }
 
 function renderExistingInput() {
@@ -1562,6 +1575,14 @@ function setPreviewMode(mode) {
     btnPc.classList.remove('active');
   } else {
     showPreview();
+  }
+}
+
+function toggleClientReport() {
+  const panel = document.getElementById('client-report-panel');
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) {
+    panel.scrollIntoView({ behavior: 'smooth' });
   }
 }
 

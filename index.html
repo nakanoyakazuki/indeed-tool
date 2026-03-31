@@ -707,13 +707,7 @@
 <div class="header">
   <h1>Indeed原稿作成ツール</h1>
   <span class="badge">v2.0</span>
-  <button class="btn" style="margin-left:auto;background:rgba(255,255,255,0.15);color:white;padding:4px 12px;font-size:12px;" onclick="toggleApiKey()">API設定</button>
-</div>
-<div class="api-key-bar hidden" id="apiKeyBar">
-  <label style="font-weight:600;white-space:nowrap;">Claude API Key:</label>
-  <input type="password" id="apiKeyInput" placeholder="sk-ant-..." value="" onchange="saveApiKey(this.value)">
-  <span class="status" id="apiKeyStatus"></span>
-  <span style="color:var(--text-light);font-size:11px;">※ブラウザに保存されます（サーバーには送信されません）</span>
+
 </div>
 
 <div style="text-align:center;padding:8px;background:#eef3fb;font-size:13px;color:var(--primary);">情報を入力するだけで、AIがIndeedの効果的な求人原稿を自動生成します</div>
@@ -747,6 +741,26 @@
 <div class="copy-toast" id="toast">コピーしました</div>
 
 <script>
+const PROXY_URL = 'https://indeed-proxy.bc-nakanoya.workers.dev';
+
+async function callAI(prompt, maxTokens = 4096) {
+  const res = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API Error: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content[0].text;
+}
+
 // ===== Data =====
 const FIELDS = [
   { id: 'jobTitle', label: '職種名', required: true, type: 'input', tip: '検索されやすいキーワードを含めましょう（例：一般事務→営業事務）' },
@@ -1237,31 +1251,15 @@ function renderMainForm() {
   let html = '';
 
   // AI generate bar
-  const hasKey = !!getApiKey();
   if (state.pattern === 1) {
     html += `<div class="ai-bar">
       <div class="ai-icon">AI</div>
       <div class="ai-text">
         <strong>AIで原稿を自動生成</strong>
-        前のステップで入力した採用背景・ターゲット・訴求軸をもとに、原稿を自動生成します。
+        基本情報＋自由入力をもとに、原稿を自動生成します。
       </div>
       <div id="ai-btn-area">
-        ${hasKey
-          ? '<button class="btn-ai" onclick="generateWithAI()">自動生成</button>'
-          : '<button class="btn-ai" disabled onclick="toggleApiKey()" style="cursor:pointer;opacity:0.7;">右上「API設定」からキーを入力</button>'}
-      </div>
-    </div>`;
-  } else if (state.pattern === 3) {
-    html += `<div class="ai-bar">
-      <div class="ai-icon">AI</div>
-      <div class="ai-text">
-        <strong>AIでリライト</strong>
-        既存原稿を、前のステップの分析結果をもとに自動リライトします。
-      </div>
-      <div id="ai-btn-area">
-        ${hasKey
-          ? '<button class="btn-ai" onclick="generateWithAI()">自動リライト</button>'
-          : '<button class="btn-ai" disabled onclick="toggleApiKey()" style="cursor:pointer;opacity:0.7;">右上「API設定」からキーを入力</button>'}
+        <button class="btn-ai" onclick="generateWithAI()">自動生成</button>
       </div>
     </div>`;
   }
@@ -1536,7 +1534,6 @@ function renderDiffView(step) {
 
   // AI auto-generate button for aiDiff steps
   if (step.aiDiff) {
-    const hasKey = !!getApiKey();
     let label = '';
     if (state.pattern === 2) {
       const types = getSelectedModTypes();
@@ -1550,9 +1547,7 @@ function renderDiffView(step) {
         既存原稿を${label}書き換えた案を生成します。生成後も自由に編集できます。
       </div>
       <div id="ai-diff-btn-area">
-        ${hasKey
-          ? '<button class="btn-ai" onclick="generateDiffWithAI()">自動生成</button>'
-          : '<button class="btn-ai" disabled onclick="toggleApiKey()" style="cursor:pointer;opacity:0.7;">右上「API設定」からキーを入力</button>'}
+        <button class="btn-ai" onclick="generateDiffWithAI()">自動生成</button>
       </div>
     </div>`;
   } else {
@@ -1580,7 +1575,7 @@ function renderDiffView(step) {
   });
 
   // AI revision input (shown after first generation)
-  if (step.aiDiff && !!getApiKey()) {
+  if (step.aiDiff) {
     html += `<div style="margin-top:20px;padding:16px;background:#f8f9fb;border:1.5px solid var(--border);border-radius:10px;">
       <p style="font-weight:600;font-size:14px;margin-bottom:8px;">AIに追加修正を指示</p>
       <p style="font-size:12px;color:var(--text-light);margin-bottom:8px;">生成された内容をベースに、さらに修正したい点を伝えてください</p>
@@ -2159,65 +2154,28 @@ JSONのみを出力し、他の文章は含めないでください。`;
 }
 
 async function generateWithAI() {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    showToast('API設定からキーを入力してください');
-    return;
-  }
-
   const prompt = buildPrompt();
   if (!prompt) return;
 
-  // Show loading
   const btnArea = document.getElementById('ai-btn-area');
   btnArea.innerHTML = '<div class="ai-loading"><div class="spinner"></div>生成中...</div>';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API Error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    const text = data.content[0].text;
-
-    // Parse JSON from response
+    const text = await callAI(prompt);
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AIの応答からJSONを抽出できませんでした');
 
     const generated = JSON.parse(jsonMatch[0]);
-
-    // Fill form fields
     FIELDS.forEach(f => {
-      if (generated[f.id]) {
-        state.formData[f.id] = generated[f.id];
-      }
+      if (generated[f.id]) state.formData[f.id] = generated[f.id];
     });
 
     showToast('原稿を生成しました！内容を確認・編集してください');
     renderWorkflow();
-
   } catch (e) {
     console.error(e);
     showToast('エラー: ' + e.message);
-    btnArea.innerHTML = state.pattern === 1
-      ? '<button class="btn-ai" onclick="generateWithAI()">再試行</button>'
-      : '<button class="btn-ai" onclick="generateWithAI()">再試行</button>';
+    btnArea.innerHTML = '<button class="btn-ai" onclick="generateWithAI()">再試行</button>';
   }
 }
 
@@ -2351,12 +2309,6 @@ JSONのみを出力し、他の文章は含めないでください。`;
 }
 
 async function generateDiffWithAI() {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    showToast('API設定からキーを入力してください');
-    return;
-  }
-
   const prompt = buildDiffPrompt();
   if (!prompt) return;
 
@@ -2364,46 +2316,19 @@ async function generateDiffWithAI() {
   btnArea.innerHTML = '<div class="ai-loading"><div class="spinner"></div>生成中...</div>';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API Error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    const text = data.content[0].text;
-
+    const text = await callAI(prompt);
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AIの応答からJSONを抽出できませんでした');
 
     const generated = JSON.parse(jsonMatch[0]);
-
-    // Fill only the diff target fields
     const step = PATTERNS[state.pattern].steps[state.step];
     const fids = step.dynamicDiffFields ? getActiveDiffFields() : step.diffFields;
     fids.forEach(fid => {
-      if (generated[fid]) {
-        state.formData[fid] = generated[fid];
-      }
+      if (generated[fid]) state.formData[fid] = generated[fid];
     });
 
     showToast('修正案を生成しました！内容を確認・編集してください');
     renderWorkflow();
-
   } catch (e) {
     console.error(e);
     showToast('エラー: ' + e.message);
@@ -2412,11 +2337,6 @@ async function generateDiffWithAI() {
 }
 
 async function generateReportWithAI() {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    showToast('API設定からキーを入力してください');
-    return;
-  }
 
   const contentEl = document.getElementById('client-report-content');
   contentEl.innerHTML = '<div class="ai-loading"><div class="spinner"></div>報告文を生成中...</div>';
@@ -2493,28 +2413,7 @@ ${companyName}様
 - フォーマットのマークダウンは使わず、プレーンテキストで`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API Error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    const reportText = data.content[0].text.trim();
+    const reportText = (await callAI(prompt, 2048)).trim();
 
     state.data['client_report'] = reportText;
 
@@ -2535,12 +2434,6 @@ ${companyName}様
 }
 
 async function reviseDiffWithAI() {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    showToast('API設定からキーを入力してください');
-    return;
-  }
-
   const inputEl = document.getElementById('ai_revision_input');
   const instruction = inputEl ? inputEl.value.trim() : '';
   if (!instruction) {
@@ -2553,59 +2446,26 @@ async function reviseDiffWithAI() {
 
   try {
     const prompt = buildDiffPrompt(instruction);
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API Error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    const text = data.content[0].text;
+    const text = await callAI(prompt);
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AIの応答からJSONを抽出できませんでした');
 
     const generated = JSON.parse(jsonMatch[0]);
-
     const step = PATTERNS[state.pattern].steps[state.step];
     const fids = step.dynamicDiffFields ? getActiveDiffFields() : step.diffFields;
     fids.forEach(fid => {
-      if (generated[fid]) {
-        state.formData[fid] = generated[fid];
-      }
+      if (generated[fid]) state.formData[fid] = generated[fid];
     });
 
     showToast('修正しました！');
     renderWorkflow();
-
   } catch (e) {
     console.error(e);
     showToast('エラー: ' + e.message);
     statusEl.innerHTML = '';
   }
 }
-
-// Init API key status on load
-(function() {
-  const saved = getApiKey();
-  if (saved) {
-    const input = document.getElementById('apiKeyInput');
-    if (input) input.value = saved;
   }
 })();
 </script>

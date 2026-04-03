@@ -792,6 +792,53 @@ const FIELDS = [
   { id: 'other', label: 'その他', required: false, type: 'textarea', rows: 3 },
 ];
 
+// ===== NGワードチェック =====
+const NG_RULES = [
+  // 年齢差別（「活躍中」はOK、「歓迎」「募集」「限定」「優遇」がNG）
+  { pattern: /(\d{2}代|若手|シニア|ミドル|中高年|高齢者)(歓迎|募集|限定|優遇|向け|対象|積極採用)/g,
+    msg: '年齢に関する制限表現はNGです', suggest: '「○○代が活躍中」のように事実の記載に変えましょう', category: '年齢' },
+  { pattern: /(\d{2})\s*(歳|才)\s*(以下|未満|まで|以上|から)(限定|のみ|に限る)?/g,
+    msg: '具体的な年齢制限はNGです（例外：定年制度に基づく場合のみ可）', suggest: '年齢ではなく必要なスキル・経験で記載しましょう', category: '年齢' },
+  // 性別差別
+  { pattern: /(男性|女性)(募集|限定|優遇|歓迎|のみ|だけ|に限る)/g,
+    msg: '性別を限定する表現はNGです', suggest: '「女性活躍中」（事実）や性別を問わない表現にしましょう', category: '性別' },
+  { pattern: /(営業マン|セールスマン|ウェイター|ウェイトレス|カメラマン|看護婦|保母)/g,
+    msg: '性別を含む職種名はNGです', suggest: '「営業スタッフ」「ホールスタッフ」「看護師」「保育士」等に変えましょう', category: '性別' },
+  // 国籍差別
+  { pattern: /(外国人|日本人|中国人|韓国人|フィリピン人|ベトナム人)(歓迎|募集|限定|優遇|のみ|不可)/g,
+    msg: '国籍を限定する表現はNGです', suggest: '「日本語での日常会話が可能な方」のようにスキルで記載しましょう', category: '国籍' },
+  // 職種名NG（jobTitleフィールド専用）
+  { pattern: /(急募|至急|未経験歓迎|経験者歓迎|高時給|高収入|高待遇|土日のみ|週[1-9]日|オープニング|月収\d+万)/g,
+    msg: '職種名に条件・宣伝文言を含めるのはNGです', suggest: '職種名は「業種＋職種」のシンプルな記載にしましょう', category: '職種名', fieldOnly: 'jobTitle' },
+  // キーワードスタッフィング
+  { pattern: /(#[^\s]+\s*){3,}/g,
+    msg: 'ハッシュタグの羅列（キーワードスタッフィング）はNGです', suggest: 'Indeed掲載ポリシー違反で非掲載になるリスクがあります', category: '掲載規定' },
+];
+
+function checkNGWords() {
+  const warnings = [];
+  FIELDS.forEach(f => {
+    const val = state.formData[f.id] || state.existingParsed[f.id] || '';
+    if (!val) return;
+    NG_RULES.forEach(rule => {
+      if (rule.fieldOnly && rule.fieldOnly !== f.id) return;
+      const matches = val.match(rule.pattern);
+      if (matches) {
+        const unique = [...new Set(matches)];
+        warnings.push({
+          field: f.label,
+          fieldId: f.id,
+          matched: unique.join('、'),
+          msg: rule.msg,
+          suggest: rule.suggest,
+          category: rule.category
+        });
+      }
+    });
+  });
+  return warnings;
+}
+
 const PATTERNS = {
   1: {
     name: '新規作成',
@@ -1619,16 +1666,36 @@ function showPreview() {
     const val = state.formData[f.id] || state.existingParsed[f.id] || '';
     if (!val) return; // Skip empty fields
     html += `<div class="preview-field">
-      <div class="label">${f.label}</div>
+      <div class="label" style="display:flex;justify-content:space-between;align-items:center;">
+        ${f.label}
+        <span class="template-btn" onclick="copyField('${f.id}')" style="font-size:11px;padding:2px 8px;">コピー</span>
+      </div>
       <div class="value">${escapeHtml(val)}</div>
     </div>`;
   });
 
   html += '</div></div></div>';
 
+  // NGワードチェック結果
+  const ngWarnings = checkNGWords();
+  if (ngWarnings.length > 0) {
+    html += `<div class="card" style="margin-top:16px;border:2px solid #ef4444;background:#fef2f2;">
+      <h2 style="color:#ef4444;margin-bottom:8px;">NGワードが検出されました（${ngWarnings.length}件）</h2>
+      <p class="hint" style="margin-bottom:12px;">Indeed掲載ポリシーに違反する可能性がある表現です。修正しないと非掲載になるリスクがあります。</p>`;
+    ngWarnings.forEach(w => {
+      html += `<div style="padding:10px 12px;margin-bottom:8px;background:white;border-radius:8px;border-left:4px solid #ef4444;">
+        <div style="font-size:13px;"><strong>[${w.category}]</strong> <span style="color:var(--primary);">${w.field}</span>：「<span style="color:#ef4444;font-weight:600;">${escapeHtml(w.matched)}</span>」</div>
+        <div style="font-size:12px;color:#b91c1c;margin-top:2px;">${w.msg}</div>
+        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">→ ${w.suggest}</div>
+      </div>`;
+    });
+    html += `<button class="btn btn-secondary" onclick="renderWorkflow()" style="margin-top:8px;">← 編集に戻って修正する</button>
+    </div>`;
+  }
+
   // Indeed posting guide
   html += `<div class="card" style="margin-top:16px;border:2px solid var(--success);">
-    <h2 style="color:var(--success);">原稿が完成しました</h2>
+    <h2 style="color:var(--success);">${ngWarnings.length > 0 ? '原稿を確認してください' : '原稿が完成しました'}</h2>
     <p class="hint" style="margin-bottom:12px;">「全文コピー」して、Indeedに貼り付けてください</p>
     <div style="font-size:13px;line-height:2;">
       <strong>Indeedへの掲載手順：</strong><br>
@@ -1636,6 +1703,26 @@ function showPreview() {
       2. <a href="https://employers.indeed.com/" target="_blank" style="color:var(--primary);">Indeed採用管理画面</a> にログイン<br>
       3. 「求人を掲載」→ 各フィールドにコピーした内容を貼り付け<br>
       4. プレビューで確認 → 掲載開始
+    </div>
+  </div>`;
+
+  // 応募促進文章生成
+  html += `<div class="card" style="margin-top:16px;border:2px solid var(--accent);">
+    <h2 style="color:var(--accent);margin-bottom:4px;">応募促進用の文章を作成</h2>
+    <p class="hint" style="margin-bottom:12px;">求人原稿をもとに、応募を促す文章をAIが生成します。SNS投稿やスカウトメールなどに活用できます。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+        <input type="radio" name="promoType" value="sns" checked style="accent-color:var(--accent);"> SNS投稿用
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+        <input type="radio" name="promoType" value="scout"> スカウトメール用
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+        <input type="radio" name="promoType" value="short"> 短文キャッチ（求人媒体用）
+      </label>
+    </div>
+    <div id="promo-content">
+      <button class="btn-ai" onclick="generatePromoText()" style="width:100%;">応募促進文を生成</button>
     </div>
   </div>`;
 
@@ -2001,6 +2088,16 @@ function parseExisting(text) {
   }
 }
 
+function copyField(fieldId) {
+  const val = state.formData[fieldId] || state.existingParsed[fieldId] || '';
+  if (val) {
+    navigator.clipboard.writeText(val.trim()).then(() => {
+      const field = FIELDS.find(f => f.id === fieldId);
+      showToast(`${field ? field.label : fieldId} をコピーしました`);
+    });
+  }
+}
+
 function copyAll() {
   let text = '';
   FIELDS.forEach(f => {
@@ -2108,6 +2205,15 @@ ${fieldList}
 - 自由入力にターゲットやトーンの指定があれば最優先で反映する
 - 自然な文体で、堅すぎない表現にする
 
+## Indeed掲載ポリシー（NGワード・禁止表現）※必ず守ること
+- 年齢制限の表現は禁止：「○代歓迎」「○歳以下」「若手歓迎」「シニア歓迎」→ 「○代が活躍中」（事実記載）に変える
+- 性別制限の表現は禁止：「男性募集」「女性歓迎」→ 「女性活躍中」（事実記載）に変える
+- 性別を含む職種名は禁止：「営業マン」→「営業スタッフ」、「ウェイトレス」→「ホールスタッフ」、「看護婦」→「看護師」
+- 国籍の表現は禁止：「外国人歓迎」→「日本語での日常会話が可能な方」のようにスキルで記載
+- 職種名には条件・宣伝文言を入れない：「急募」「未経験歓迎」「高時給」「オープニング」等は不可
+- ハッシュタグの羅列（キーワードスタッフィング）は禁止
+- 属性（年齢・性別・国籍）ではなく「能力・スキル」で人材要件を記載する
+
 各フィールドの値をJSON形式で出力してください。キーはフィールドのid（括弧内の英語名）を使用してください。
 基本情報で入力済みの値もそのままJSONに含めてください。
 JSONのみを出力し、他の文章は含めないでください。`;
@@ -2146,6 +2252,14 @@ ${fieldList}
 - 求める人材は「必須条件」(reqMust)と「歓迎条件」(reqWelcome)に分ける
 - わかりやすく具体的な表現にする
 - 意味を変えない範囲で伝わりやすくする
+
+## Indeed掲載ポリシー（NGワード・禁止表現）※必ず守ること
+- 年齢制限の表現は禁止：「○代歓迎」「○歳以下」「若手歓迎」→ 「○代が活躍中」（事実記載）に変える
+- 性別制限の表現は禁止：「男性募集」「女性歓迎」→ 「女性活躍中」（事実記載）に変える
+- 性別を含む職種名は禁止：「営業マン」→「営業スタッフ」
+- 国籍の表現は禁止：スキルで記載する
+- 職種名には条件・宣伝文言を入れない
+- 属性ではなく「能力・スキル」で人材要件を記載する
 
 各フィールドの値をJSON形式で出力してください。キーはフィールドのid（英語名）を使用してください。
 JSONのみを出力し、他の文章は含めないでください。`;
@@ -2293,6 +2407,14 @@ ${outputFields}
 - ★最重要指示★に書かれた内容を最優先で反映すること
 - 元の原稿から大きく変えること。小手先の修正ではなく、指示に沿った本質的な書き換えをすること
 - 求める人材は必須条件(reqMust)と歓迎条件(reqWelcome)に分ける
+
+## Indeed掲載ポリシー（NGワード・禁止表現）※必ず守ること
+- 年齢制限の表現は禁止：「○代歓迎」「○歳以下」「若手歓迎」「シニア歓迎」→ 「○代が活躍中」（事実記載）に変える
+- 性別制限の表現は禁止：「男性募集」「女性歓迎」→ 「女性活躍中」（事実記載）に変える
+- 性別を含む職種名は禁止：「営業マン」→「営業スタッフ」、「看護婦」→「看護師」
+- 国籍の表現は禁止：スキルで記載する
+- 職種名には条件・宣伝文言を入れない（「急募」「未経験歓迎」「高時給」等は不可）
+- 属性ではなく「能力・スキル」で人材要件を記載する
 
 ## Indeedベストプラクティス（必ず守ること）
 - スマホで読みやすいように箇条書きを活用する（応募の70%はスマホ経由）
@@ -2464,6 +2586,109 @@ async function reviseDiffWithAI() {
     console.error(e);
     showToast('エラー: ' + e.message);
     statusEl.innerHTML = '';
+  }
+}
+
+// ===== 応募促進文章生成 =====
+async function generatePromoText() {
+  const promoType = document.querySelector('input[name="promoType"]:checked')?.value || 'sns';
+  const contentEl = document.getElementById('promo-content');
+  contentEl.innerHTML = '<div class="ai-loading"><div class="spinner"></div>応募促進文を生成中...</div>';
+
+  // Collect current manuscript
+  let manuscriptText = '';
+  FIELDS.forEach(f => {
+    const val = state.formData[f.id] || state.existingParsed[f.id] || '';
+    if (val) manuscriptText += `【${f.label}】\n${val}\n\n`;
+  });
+
+  const typeConfig = {
+    sns: {
+      label: 'SNS投稿用',
+      instruction: `以下の3パターンを作成してください：
+
+パターン1：Twitter/X向け（140文字以内）
+- 目を引くフレーズで始める
+- ハッシュタグを2〜3個付ける
+
+パターン2：Instagram/Facebook向け（300〜500文字）
+- 共感を呼ぶ書き出し
+- 箇条書きで魅力ポイントを整理
+- 「詳しくはプロフィールのリンクから」等のCTA
+
+パターン3：LINE/メッセージ用（200文字以内）
+- 友人に話しかけるようなカジュアルなトーン
+- 「こんな方いませんか？」的な呼びかけ`
+    },
+    scout: {
+      label: 'スカウトメール用',
+      instruction: `スカウトメールの文面を作成してください（400〜600文字）：
+- 件名（30文字以内）を1つ
+- 本文：なぜその方に声をかけたのか（ターゲット像から逆算）
+- 具体的な魅力を3つ程度
+- 「まずはカジュアルにお話しませんか？」等の柔らかいCTA
+- 丁寧だが堅すぎない文体`
+    },
+    short: {
+      label: '短文キャッチ（求人媒体用）',
+      instruction: `異なる切り口の短文キャッチを5パターン作成してください（各30〜60文字）：
+1. 給与・待遇で引くパターン
+2. 働きやすさ・環境で引くパターン
+3. やりがい・成長で引くパターン
+4. ターゲットの悩みに寄り添うパターン
+5. 具体的な数字で引くパターン`
+    }
+  };
+
+  const config = typeConfig[promoType];
+
+  const prompt = `あなたは求人マーケティングのプロです。以下の求人原稿をもとに、応募を促進するための文章を作成してください。
+
+## 用途
+${config.label}
+
+## 作成ルール
+${config.instruction}
+
+## 求人原稿
+${manuscriptText}
+
+## 共通ルール
+- 年齢・性別・国籍を限定する表現は使わない（Indeed掲載ポリシー準拠）
+- 求人原稿の内容と矛盾しないこと
+- 具体的な数字や条件を活用して説得力を持たせる
+- 応募へのハードルを下げる表現を心がける
+- マークダウンは使わず、プレーンテキストで出力
+- 各パターンの間は「---」で区切る`;
+
+  try {
+    const promoText = (await callAI(prompt, 2048)).trim();
+    state.data['_promoText'] = promoText;
+    state.data['_promoType'] = promoType;
+
+    contentEl.innerHTML = `<div class="form-group" style="margin-bottom:0;">
+      <label>${config.label}
+        <span class="template-btn" onclick="copyPromo()">コピー</span>
+        <span class="template-btn" onclick="generatePromoText()" style="margin-left:4px;">再生成</span>
+      </label>
+      <textarea id="promo_text" rows="15" style="min-height:250px;font-size:13px;line-height:1.8;"
+        onchange="state.data['_promoText']=this.value">${escapeHtml(promoText)}</textarea>
+    </div>`;
+
+    showToast('応募促進文を生成しました');
+  } catch (e) {
+    console.error(e);
+    showToast('エラー: ' + e.message);
+    contentEl.innerHTML = '<button class="btn-ai" onclick="generatePromoText()" style="width:100%;">再試行</button>';
+  }
+}
+
+function copyPromo() {
+  const el = document.getElementById('promo_text');
+  if (el) {
+    navigator.clipboard.writeText(el.value).then(() => {
+      showToast('応募促進文をコピーしました');
+    });
   }
 }
 </script>
